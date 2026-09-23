@@ -6,7 +6,7 @@ import { hashSecret } from "../src/lib/hash";
 // Creates the first MASTER_ADMIN. The password is random and printed ONCE —
 // there is no way to recover it later, and no hardcoded default.
 async function main() {
-  const email = (process.env.SEED_ADMIN_EMAIL ?? "master@virtusa.com").trim().toLowerCase();
+  const email = (process.env.SEED_ADMIN_EMAIL ?? "admin@example.com").trim().toLowerCase();
   const existing = await adminUsersCol().where("email", "==", email).limit(1).get();
   if (!existing.empty) {
     console.log(`An admin account for ${email} already exists — nothing to do.`);

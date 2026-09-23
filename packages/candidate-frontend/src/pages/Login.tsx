@@ -46,7 +46,7 @@ export default function Login() {
         </div>
         <div className="field">
           <label htmlFor="emp">Employee ID</label>
-          <input id="emp" type="text" autoFocus autoComplete="username" placeholder="e.g. VRT001234" value={empId} onChange={(e) => setEmpId(e.target.value)} />
+          <input id="emp" type="text" autoFocus autoComplete="username" placeholder="e.g. EMP001234" value={empId} onChange={(e) => setEmpId(e.target.value)} />
         </div>
         <div className="field">
           <label htmlFor="key">Access Key</label>

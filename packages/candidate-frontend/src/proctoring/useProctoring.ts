@@ -46,7 +46,7 @@ function headPose(lm: NormalizedLandmark[]) {
 
 async function createDetectors(): Promise<{ face: FaceLandmarker; objects: ObjectDetector }> {
   const vision = await import("@mediapipe/tasks-vision");
-  // Self-hosted runtime + models (the target network blocks the usual CDN).
+  // Self-hosted runtime + models: no third-party CDN, which restrictive networks often block.
   const fileset = await vision.FilesetResolver.forVisionTasks("/mediapipe/wasm");
   const make = async (delegate: "GPU" | "CPU") => Promise.all([
     vision.FaceLandmarker.createFromOptions(fileset, {

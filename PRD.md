@@ -1,21 +1,24 @@
 # GapVise AI — Product Requirements Document
 
-**Version:** 2.0 (build-grade specification)
-**Companions:** `TECH_STACK.md` (stack, config, deployment) · `PRODUCTION_FIXES.md` (hardening backlog)
+**Product:** GapVise AI — AI-assisted technical skills assessment, delivered as SaaS
+**Version:** 3.0 (build-grade specification)
+**Status:** v1 product built and verified end to end; SaaS platform features are on the roadmap (§15)
+**Companion:** `TECH_STACK.md` (stack, configuration, deployment)
 
 ---
 
 ## 0. How to use this document
 
-This is a **build-grade spec**, not a summary. It specifies a real, shipped
-product exactly as it behaves. If you are an AI session or engineer building
-this from scratch:
+This is a **build-grade spec**, not a pitch. §3 describes the product and who
+it is for; everything after it specifies the product exactly as it behaves, to
+the level of constants, error strings and model prompts. Product, design and
+engineering all work from the same document.
 
 1. **Read §1 (Critical precision notes) first.** It lists the values that look
    arbitrary but are load-bearing, and the places where an "obvious
    improvement" produces wrong behavior.
-2. **Follow the build order in §2.** The system has real dependency ordering —
-   building screens before the state machine will waste work.
+2. **Follow the implementation order in §2.** The system has real dependency
+   ordering — building screens before the state machine wastes work.
 3. **Never invent a value this document specifies.** Every constant, threshold,
    label string, cron expression, and prompt here is literal. Where a value is
    genuinely a free choice, this document says so explicitly.
@@ -24,7 +27,11 @@ this from scratch:
    and breaks parsing.
 5. Where this document says **"do not change"**, the behavior is a deliberate
    product or engineering decision, not an oversight. §13 lists accepted gaps
-   so you don't "fix" them.
+   so nobody "fixes" them.
+6. **Current build vs. roadmap.** §1–§14 and Appendix A describe the product as
+   built today (a single-organization deployment). §15 lists the SaaS platform
+   capabilities — multi-tenancy, billing, SSO and so on — that are planned but
+   not built. §16 records what changed from the previous revision.
 
 Anything not specified here (visual styling details, file/folder naming inside
 a package, logging verbosity) is a free choice.
@@ -53,9 +60,9 @@ guess produces incorrect behavior.
 
 ---
 
-## 2. Build order
+## 2. Implementation order
 
-Build in this sequence. Each step is testable before the next begins.
+The system has real dependency ordering. Each step is testable before the next begins.
 
 1. **Foundation** — monorepo, TypeScript config, Firestore connection, the
    type definitions in §4, the typed collection accessors.
@@ -87,42 +94,115 @@ Build in this sequence. Each step is testable before the next begins.
 
 ---
 
-## 3. Product summary and personas
+## 3. Product overview
 
 ### 3.1 What it is
 
-GapVise AI is an admin-driven hiring pipeline. An admin uploads or pastes a job
-description; Gemini extracts structured required skills and proficiency levels;
-candidates are imported from Excel and matched to job descriptions by exact
-title; each matched candidate is scheduled for a one-time, access-key-gated
-interview; the candidate takes a proctored three-section interview drawn from a
-Gemini-generated question bank; on completion, one holistic Gemini call scores
-the full transcript; the result becomes a downloadable PDF report and rolls into
-a master results view exportable to Excel.
+GapVise AI is a software-as-a-service platform that turns a job description into
+a fair, proctored, AI-scored technical interview — and turns each interview into
+a defensible skill-gap report — without anyone writing a question or grading an
+answer by hand.
 
-Two frontends share one backend API: an **admin dashboard** and a **candidate
-interview app**. They share no auth state — separate cookies, separate session
-lifecycles, separate guards.
+A customer's hiring team uploads or pastes a job description; the platform
+extracts the required skills and proficiency levels and generates a 108-question
+bank calibrated to the role. Candidates are imported in bulk from Excel and
+matched to the job by exact title; each receives a one-time, access-key-gated
+interview link by email. The candidate takes a timed, proctored three-section
+interview in the browser. On completion, the full transcript is scored question
+by question, every aggregate score is derived deterministically, and the result
+becomes a downloadable PDF report and a row in a results view exportable to
+Excel.
 
-### 3.2 Personas
+The product has two web apps on one backend API: an **admin dashboard** for the
+customer's hiring team and a **candidate interview app**. They share no auth
+state — separate cookies, separate session lifecycles, separate guards.
 
-**Admin.** Two roles: `MASTER_ADMIN` (full access including admin-user
-management, audit log, and Gemini key settings) and `ADMIN` (everything else).
-Goals: turn a JD into a fair, consistent interview without writing questions;
-import and schedule many candidates at once; trust that scores are accurate and
-defensible; see who did what.
+### 3.2 The problem
 
-**Candidate.** Receives a one-time access key by email, logs in with employee ID
-+ key, takes a timed skill-relevant interview, and is not falsely penalized by
-proctoring for normal behavior. Exactly one attempt per scheduled interview.
+Technical screening is slow, inconsistent and hard to defend:
 
-### 3.3 Success definition
+- **It doesn't scale.** Engineers spend hours writing questions and running
+  first-round interviews; a hiring push of 50 candidates can consume weeks of
+  senior time.
+- **It's inconsistent.** Different interviewers ask different questions and
+  grade to different bars, so two candidates for the same role are rarely
+  measured the same way.
+- **It's hard to defend.** A hiring decision often rests on one interviewer's
+  notes, with no record of what was asked, what was answered, or why it scored
+  as it did.
+- **Remote assessments are easy to game** — and heavy-handed proctoring that
+  ejects candidates for a glance away is unfair to honest ones.
 
-An admin goes from "here is a JD" to "here are 50 scored, reportable candidate
-interviews" without writing a question or grading an answer by hand, while every
-consequential admin action leaves an audit trail and no candidate can be
-interviewed twice on the same attempt or have their session corrupted by a
+### 3.3 Who it's for
+
+- **Mid-size and enterprise companies hiring technical talent** — software,
+  QA, data and automation roles — that run many screens per quarter.
+- **IT services and staffing firms** that must assess large candidate pools
+  against client job descriptions quickly and show clients the evidence.
+- **Learning & development and internal-mobility teams** that assess existing
+  employees against a target role to find skill gaps before redeployment or
+  upskilling. (This is why the candidate identifier is a customer-assigned ID
+  — an employee ID internally, an applicant or requisition ID externally; see
+  §3.7.)
+
+### 3.4 Primary use cases
+
+1. **Pre-screen external applicants** for a specific opening, then send only
+   the strongest to human interviews.
+2. **Bulk assessment drives** — campus hiring or a staffing pipeline — where
+   hundreds of candidates are imported, scheduled and scored in one batch.
+3. **Internal skill-gap assessment** of existing staff against a role, using
+   the per-skill "expected vs. demonstrated level" report.
+4. **Re-assessment** of the same person against a different role, keeping every
+   previous attempt and report intact.
+
+### 3.5 Personas
+
+**Workspace owner (`MASTER_ADMIN`).** Usually the hiring or talent-operations
+lead at the customer. Full access, including managing the team's admin
+accounts, reading the audit log, and managing the Gemini API key. Goals: trust
+that scores are accurate and defensible; see who did what; control access.
+
+**Hiring team member (`ADMIN`).** Recruiters, hiring managers and coordinators.
+Everything except administration. Goals: turn a JD into a consistent interview
+without writing questions; import and schedule many candidates at once; review
+results and export them.
+
+**Candidate.** An applicant (or employee) being assessed. Receives a one-time
+access key by email, signs in with their candidate ID + key, takes a timed,
+skill-relevant interview, and is not falsely penalized by proctoring for normal
+behavior. Exactly one attempt per scheduled interview; never sees a score.
+
+### 3.6 Value proposition and success metrics
+
+**The promise:** from "here is a JD" to "here are 50 scored, reportable
+candidate interviews" without writing a question or grading an answer by hand —
+while every consequential admin action leaves an audit trail, no candidate can
+be interviewed twice on the same attempt, and no session is corrupted by a
 flaky connection.
+
+| Metric | What it measures | Target |
+|---|---|---|
+| Time to first interview | JD uploaded → first candidate can be scheduled | < 5 minutes |
+| Hiring-team hours saved | Screening hours replaced per 50 candidates | > 40 hours |
+| Scoring consistency | Same answers, same scores (aggregates are deterministic) | 100% for derived scores |
+| Report turnaround | Interview completed → report ready | < 5 minutes (p95) |
+| Candidate completion rate | Scheduled interviews completed (not no-show) | > 80% |
+| False-flag protection | Interviews auto-terminated by proctoring | 0 (by design, §6.6) |
+
+### 3.7 Terminology
+
+- **Workspace / organization** — one customer's deployment. Today each
+  deployment serves one organization; multi-tenant workspaces are on the
+  roadmap (§15).
+- **JD** — a job description, stored in the JD Master and identified by its
+  lowercased title (`jdRef`).
+- **Candidate ID** — the customer-assigned identifier for a person being
+  assessed. In the data model and API it keeps the field name `empId` and the
+  Excel column "Emp ID" for compatibility; customers may use employee IDs,
+  applicant IDs or requisition IDs.
+- **Attempt / interview** — one scheduled assessment of one candidate against
+  one JD. A candidate can have several over time.
 
 ---
 
@@ -153,7 +233,8 @@ export type AuditAction =
   | "QUESTION_BANK_GENERATED" | "QUESTION_BANK_CLEARED" | "QUESTION_DELETED"
   | "ADMIN_CREATED" | "ADMIN_DEACTIVATED"
   | "INTERVIEW_SCHEDULED" | "ACCESS_KEY_REISSUED" | "INTERVIEW_ATTEMPT_ADDED"
-  | "GEMINI_KEY_UPDATED" | "GEMINI_KEY_CLEARED" | "ADMIN_PROFILE_UPDATED";
+  | "GEMINI_KEY_UPDATED" | "GEMINI_KEY_CLEARED" | "ADMIN_PROFILE_UPDATED"
+  | "ADMIN_PASSWORD_RESET";
 
 export interface RequiredSkill {
   skill: string;
@@ -169,7 +250,9 @@ export interface AdminUserDoc {
   role: AdminRole;
   createdBy: string | null; // null for the seed account
   isActive: boolean;        // re-checked on EVERY request, not just login
-  refreshTokenHash?: string | null; // bcrypt; rotated per refresh, nulled on logout/reuse
+  refreshTokenHash?: string | null; // SHA-256; rotated per refresh, nulled on logout/reuse
+  passwordResetTokenHash?: string | null;   // SHA-256 of a single-use reset token (§7.1)
+  passwordResetExpiresAt?: Timestamp | null;
   createdAt: Timestamp;
 }
 
@@ -518,6 +601,10 @@ Each row creates a `Candidate` doc via `.create()` (atomic dedup against a
 resubmitted chunk) **and** a `PENDING` `Interview` doc with `accessKeyHash: ""`
 and `schedule: null`.
 
+The candidate ID (`empId`) is **stored uppercased**, because candidate login
+uppercases the ID it is given (§7.8) — an ID imported in lowercase would
+otherwise never be able to sign in.
+
 **`batchId`** is generated **once per whole import operation** on the frontend,
 *before* chunking — so a large import split into sequential 200-row chunks still
 reads back as one batch, not one fake batch per chunk.
@@ -554,6 +641,14 @@ fails the request — the admin still has the key.
 **Reschedule** changes the datetime, resets `reminderCount = 0` and
 `lastReminderAt = null`, sets status back to `PENDING`, and does **not** touch
 the access key.
+
+**Schedule and reschedule only apply to `PENDING` or `NO_SHOW` interviews.**
+Both set the status back to `PENDING`, so applying them to an `ACTIVE` or
+`COMPLETED` interview would reopen a one-attempt assessment. The status check
+and the write happen in one transaction, so a candidate signing in at the same
+moment can't slip through. Rejected with `409 "This interview has already
+started or finished, so it can't be scheduled again."` (in a bulk request, that
+string becomes the row's `failed[].error`).
 
 ### 6.5 Interview session state machine
 
@@ -1006,7 +1101,27 @@ const createUserSchema = z.object({
 });
 ```
 
-Changing email or password nulls `refreshTokenHash` (logging out other sessions).
+Changing email or password nulls `refreshTokenHash` (logging out other sessions)
+and cancels any outstanding password-reset link; the session that made the
+change is issued fresh tokens so it stays signed in.
+
+**Self-service password reset** (both unguarded, sharing one rate limiter of
+**5 requests per 15 minutes per IP**, counting every request):
+
+| Route | Request | Success |
+|---|---|---|
+| `POST /forgot-password` | `{ email }` | `200 { ok: true, message }` — **identical for existing and unknown emails**, so the endpoint can't be used to discover accounts |
+| `POST /reset-password` | `{ token, newPassword }` (min 8) | `200 { ok: true }` |
+
+For an active account, `/forgot-password` generates `randomBytes(32)` as a
+base64url token, stores only its SHA-256 in `passwordResetTokenHash` with
+`passwordResetExpiresAt = now + 30 min` (a newer request replaces, and so
+invalidates, an earlier link), and emails
+`${ADMIN_APP_URL}/admin/reset-password?token=…`. `/reset-password` validates
+and consumes the token in one transaction (**single use**), sets the new
+bcrypt hash, clears the reset fields, nulls `refreshTokenHash` (signing the
+account out everywhere), and records `ADMIN_PASSWORD_RESET` with the account
+itself as the actor.
 
 ### 7.2 Candidates — `/api/admin/candidates`
 
@@ -1186,7 +1301,13 @@ CandidateProfile = { empId, empName, cluster /* = skillCluster */, jdRef: string
 | `POST /logout` | **none** | — | `200 { ok: true }` |
 
 Login checks the bcrypt key against **every** PENDING/ACTIVE interview for that
-empId that has both a `schedule` and an `accessKeyHash`.
+empId that has both a `schedule` and an `accessKeyHash`. The access key is
+also trimmed and uppercased. A successful login moves the interview to
+`ACTIVE` (this is what takes it off the no-show ladder, §6.9);
+`interviewStatus` in the response is the status **before** login, so
+`"ACTIVE"` means the candidate may have a session to resume. `startedAt` stays
+`null` until `POST /session/start`, which is why the idle sweep skips `ACTIVE`
+interviews with no signal yet.
 
 ### 7.9 Candidate session — `/api/interview/session`
 
@@ -1204,8 +1325,21 @@ empId that has both a `schedule` and an `accessKeyHash`.
 | `POST /start` | — | **`201`** on a fresh start, **`200`** when resuming an existing session |
 | `GET /` | — | `200` (also performs the expiry check, without touching the heartbeat) |
 | `POST /heartbeat` | — | `200` (updates `lastHeartbeatAt` **and** performs the expiry check) |
-| `POST /answer` | `{ answer: z.string().min(1), inputMode: z.enum(["voice","typed"]) }` | `200`, `autoCompleted = expired && next.done` |
+| `POST /answer` | `{ answer: z.string().min(1), inputMode: z.enum(["voice","typed"]), questionId?: string }` | `200`, `autoCompleted = expired && next.done` |
 | `POST /skip-section` | — | `200` |
+
+**The candidate only ever sees the current question.** Before any `state` is
+returned, every plan question's `prompt` and `skill` are blanked, the current
+question's `skill` is blanked, and every past `answer` text is blanked
+(`questionId` and `inputMode` are kept). This prevents reading upcoming
+questions in the browser's developer tools; it's also why the candidate app
+builds its "previous answers" panel client-side (§12.3).
+
+**`questionId` on `/answer` is an idempotency guard.** When it's present and
+doesn't match the open question, the call is a no-op that returns the current
+state with `200` — so a client retry of an answer the server already accepted
+can never be recorded against the *next* question. (A concurrent double submit
+of the final answer still returns `409 ALREADY_DONE` to one of the two calls.)
 
 ### 7.10 Candidate violation — `/api/interview/violation`
 
@@ -1337,6 +1471,11 @@ issue message, with the stated fallback when none is available.
 | 422 | *`QuestionBankEmptyError` message* | session start, no bank |
 | 422 | `"This interview hasn't been scored yet."` | results PDF, report not COMPLETED |
 | 429 | `"Too many failed attempts. Please wait a few minutes and try again."` | both logins |
+| 400 | *first zod issue* / `"Enter a valid email address."` | forgot password |
+| 400 | `"New password must be at least 8 characters."` | reset password |
+| 400 | `"This reset link is invalid or has expired. Request a new one."` | reset password — unknown, used, expired, or inactive-account token |
+| 409 | `"This interview has already started or finished, so it can't be scheduled again."` | schedule one / reschedule (bulk: per-row `failed[].error`) |
+| 429 | `"Too many password reset attempts. Please wait a few minutes and try again."` | forgot / reset password |
 | 500 | `"Extraction failed unexpectedly."` | JD extract, non-Gemini throw |
 | 500 | `"Question generation failed unexpectedly."` | question generate, non-Gemini throw |
 | 500 | `"Could not record your answer — please try again."` | answer, unexpected transaction throw |
@@ -1378,7 +1517,8 @@ traces or internals to the client. It is skipped entirely when
 provider, which wraps both the login page and the guarded shell (so they share
 context). Every page except login is lazy-loaded.
 
-Routes: `/admin/login` (unguarded); `/admin/*` guarded, with children
+Routes: `/admin/login`, `/admin/forgot-password`, `/admin/reset-password`
+(unguarded); `/admin/*` guarded, with children
 `overview`, `candidates`, `jd-master`, `question-bank`, `schedule`,
 `live-monitor`, `results`, `api-usage`, `profile`, plus MASTER-only `users`,
 `audit-log`, `settings`.
@@ -1416,7 +1556,8 @@ Two-panel split. Left: brand, headline "AI-assisted technical interviews, from
 job description to scored report.", and a three-item feature list. Right: a
 "Sign in" card with Email (`type="text"`, autofocus) and Password, a full-width
 submit reading "Sign in" / "Signing in…", disabled while busy or either field is
-blank. On success → `/admin/overview`.
+blank. On success → `/admin/overview`. A **"Forgot password?"** link sits beside
+the Password label (§11.14).
 
 ### 11.2 Overview
 
@@ -1703,6 +1844,7 @@ Action → label/color (destructive red, additive green, modification amber):
 | `GEMINI_KEY_UPDATED` | Gemini API key updated | warn |
 | `JD_UPDATED` | JD updated | warn |
 | `ADMIN_PROFILE_UPDATED` | Admin profile updated | warn |
+| `ADMIN_PASSWORD_RESET` | Password reset by email | warn |
 
 Columns: When (date+time+seconds, tabular-nums) · Action pill · Summary · By
 (actorName + actorEmail) · a Details/Hide toggle (`aria-expanded`) that expands a
@@ -1734,6 +1876,24 @@ without hitting the API. Blank fields are sent as `undefined` (omitted), not
 empty strings. On success, refresh the cached admin so the sidebar identity
 updates immediately.
 
+### 11.14 Forgot and reset password
+
+Two unguarded routes outside the shell, each a centered card with the brand
+and a "← Back to sign in" link.
+
+**`/admin/forgot-password`** — "Reset your password", one Email field and a
+"Send reset link" / "Sending…" button. On success the form is replaced by the
+server's message (identical whether or not the account exists) and "Didn't get
+it? Check spam, or wait a minute and request another link."
+
+**`/admin/reset-password?token=…`** — "Choose a new password", with New
+password (`autoComplete="new-password"`, "At least 8 characters.") and Confirm
+new password, showing "Passwords don't match." inline. Submit reads "Set new
+password" / "Saving…". On success: "Your password has been changed and you've
+been signed out everywhere." plus a **Sign in** button. An invalid or expired
+link shows the server error with a "Request a new link" link. With no `token`
+in the URL, the page explains it needs the link from the reset email.
+
 ---
 
 ## 12. Frontend — candidate
@@ -1745,7 +1905,7 @@ provider → shell, with children `login`, `instructions` (`RequireProfile`),
 `session` (`RequireActiveInterview`), `end` (`RequireFinishedInterview`). All
 four pages lazy-loaded (so MediaPipe and the editor only load when needed).
 
-Header: brand block ("GapVise AI" / "Virtusa AI Assessment"), then
+Header: brand block ("GapVise AI" / "AI Skills Assessment"), then
 `<strong>{empName}</strong> · {empId}` when a profile exists, plus a theme
 toggle persisted to `localStorage["cand-theme"]`. **Default theme is dark**
 (light only if the OS prefers light).
@@ -1776,7 +1936,7 @@ would be rejected as token reuse and force a spurious mid-interview logout.
 
 A centered card: lock badge, `GapVise AI Assessment`, "Enter the Employee ID and
 access key from your invitation email." Two fields, both monospace with
-`letter-spacing: 1px`: Employee ID (placeholder `e.g. VRT001234`, autofocus) and
+`letter-spacing: 1px`: Employee ID (placeholder `e.g. EMP001234`, autofocus) and
 Access Key (placeholder `Your 12-character key`). Submit reads `Continue →` /
 `Checking…`. On success → `/interview/instructions`.
 
@@ -1952,16 +2112,24 @@ Do not "fix" these — each is a deliberate decision:
 - **Skill coverage is best-effort.** If a plan can't fit every bank skill after
   one greedy repair pass, the leftover skill is left uncovered.
 - **Excel export is client-side only.** No backend export endpoint.
-- **No self-service "forgot password"** for an admin who has lost access (a
-  logged-in admin *can* change their own password).
+- **Password reset requires working email.** Admins can reset a forgotten
+  password via an emailed link (§7.1, §11.14). Without email configured the
+  reset email is written to the server log instead, so a locked-out admin needs
+  an operator. There is no candidate password (candidates use one-time access
+  keys; a lost key is re-sent by an admin).
 - **The audit log can lose an entry** if Firestore hiccups at exactly the wrong
   moment. This is preferred over blocking real operations on a log write.
-- **`getCategory`'s `score >= 4` branch is dead code** in the original (it
-  returns the same "Category 3" the final return already covers). Collapsing it
-  changes nothing; it is noted so the omission doesn't look like a transcription
-  error.
-- **No automated test suite and no CI exist in the source project.** See
-  `PRODUCTION_FIXES.md` — do not assume test infrastructure is present.
+- **`getCategory` has no separate `score >= 4` branch.** An earlier design had
+  one that returned the same "Category 3" as the final return; collapsing it
+  changes nothing. It is noted so the omission doesn't look like an oversight.
+- **Automated tests cover the deterministic logic, not the UI.** Vitest covers
+  scoring, integrity, plan building, the state machine, tokens and prompt
+  fidelity against Appendix A; there is no browser test suite or CI pipeline
+  yet (§15).
+- **Single-instance assumptions.** The login rate limiters are in memory and
+  the three sweeps run in-process on `node-cron`, so the backend must run as
+  exactly one long-lived instance until these move to shared infrastructure
+  (§15).
 
 ---
 
@@ -2004,6 +2172,47 @@ A build is correct when all of the following hold:
 22. A deactivated admin's still-valid token fails on the very next request.
 23. Replaying an already-rotated refresh token clears the stored hash and forces re-login.
 24. An access token presented at `/refresh` is rejected (the `type` claim check).
+
+---
+
+## 15. SaaS roadmap (planned — not in the current build)
+
+Today each deployment serves a single customer organization. These capabilities
+turn it into a self-serve, multi-customer SaaS product. Nothing in this section
+is built yet; nothing in §1–§14 depends on it.
+
+| Area | Capability | Notes |
+|---|---|---|
+| **Multi-tenancy** | Organizations/workspaces with strict data isolation | Every collection gains an `orgId`; every query and guard is scoped by it; JD titles, candidate IDs and audit logs become unique per organization, not globally |
+| **Onboarding** | Self-serve sign-up, workspace creation, email verification, team invites | Replaces the seed-admin script as the way a customer gets its first owner account |
+| **Billing** | Plans priced per completed assessment or per seat, usage metering, Stripe billing, trial credits | `apiUsageLog` and completed-interview counts are the metering inputs |
+| **Identity** | SAML/OIDC single sign-on and SCIM provisioning for enterprise customers; optional MFA | Complements the email/password login and reset flow |
+| **AI keys** | Platform-managed Gemini key by default, bring-your-own-key per workspace | Today's Settings page (§6.10) is the single-tenant version of BYOK |
+| **Branding** | Per-workspace logo, colors, email sender name and candidate-portal subdomain | Candidate app and emails currently show GapVise branding |
+| **Integrations** | ATS connectors (Greenhouse, Lever, Workday), public REST API, webhooks on "report ready" | Replaces Excel as the main import/export path for larger customers |
+| **Compliance** | Data retention policies, candidate data export/deletion (GDPR/DPDP), data residency, SOC 2 | Proctoring stays event-only (§13), which limits the personal data held |
+| **Scale & reliability** | Shared rate-limit store, a distributed job scheduler, horizontal scaling, CI with browser tests | Lifts the single-instance assumptions in §13 |
+| **Assessment depth** | Custom question banks, question review workflow, more question types (MCQ, take-home), multi-language | The current bank has no approval gate by design (§11.5) |
+
+---
+
+## 16. Revision history
+
+**v3.0** — Reframed as a SaaS product (§0, §3, §15) and brought in line with the
+built product:
+
+- Admin **self-service password reset** (§4, §7.1, §9, §11.14), previously a
+  non-goal.
+- Session responses expose **only the current question** (§7.9).
+- **`questionId` idempotency guard** on `/answer` (§7.9).
+- **Schedule/reschedule guarded** to `PENDING`/`NO_SHOW` so a finished interview
+  can't be reopened (§6.4).
+- **Candidate IDs stored uppercase** to match login (§6.3); access keys
+  normalized to uppercase at login (§7.8).
+- **Login moves the interview to `ACTIVE`** (§7.8).
+- Candidate-app header reads "AI Skills Assessment" (§12.0).
+
+**v2.0** — Build-grade specification of the single-organization product.
 
 ---
 

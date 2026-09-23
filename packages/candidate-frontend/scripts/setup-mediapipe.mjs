@@ -1,5 +1,5 @@
-// Self-hosts the MediaPipe runtime + models under public/mediapipe (the target network blocks
-// the usual CDN hosting). Run once after `npm install`: npm run setup:mediapipe -w packages/candidate-frontend
+// Self-hosts the MediaPipe runtime + models under public/mediapipe, so the candidate app never
+// depends on a third-party CDN (locked-down corporate networks often block it). Run once after `npm install`: npm run setup:mediapipe -w packages/candidate-frontend
 import { copyFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";

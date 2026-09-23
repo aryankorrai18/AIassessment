@@ -30,7 +30,7 @@ export function Shell() {
           <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)" /><path d="M9 17.5l4.5 4.5L23 11" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <div>
             <div className="cand-brand-name">GapVise AI</div>
-            <div className="cand-brand-sub">Virtusa AI Assessment</div>
+            <div className="cand-brand-sub">AI Skills Assessment</div>
           </div>
         </div>
         <div className="cand-header-right">
