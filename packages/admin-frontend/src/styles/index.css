@@ -1,0 +1,120 @@
+:root,
+:root[data-theme="light"] {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --border: #dde1e7;
+  --border-strong: #c5cbd4;
+  --text: #1c2129;
+  --text-muted: #5d6673;
+  --text-faint: #8a93a0;
+  --accent: #2f5bd3;
+  --accent-hover: #2549b3;
+  --accent-soft: #e8eefc;
+  --ok: #1a7f37;
+  --ok-soft: #dcf3e2;
+  --warn: #9a6300;
+  --warn-soft: #fcefcf;
+  --err: #c92a2a;
+  --err-soft: #fde2e2;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08);
+  --focus: 0 0 0 3px rgba(47, 91, 211, 0.35);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f1216;
+  --surface: #171b21;
+  --surface-2: #1e232b;
+  --border: #2a313b;
+  --border-strong: #3a434f;
+  --text: #e6e9ee;
+  --text-muted: #a2abb8;
+  --text-faint: #6f7987;
+  --accent: #6b8ff0;
+  --accent-hover: #86a4f5;
+  --accent-soft: #1d2a4d;
+  --ok: #4fc26b;
+  --ok-soft: #12301b;
+  --warn: #e3b341;
+  --warn-soft: #33290f;
+  --err: #f47067;
+  --err-soft: #3b1717;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --focus: 0 0 0 3px rgba(107, 143, 240, 0.45);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+  line-height: 1.25;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+  border-radius: 6px;
+}
+
+code,
+.mono {
+  font-family: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+.faint {
+  color: var(--text-faint);
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

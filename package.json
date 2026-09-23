@@ -1,0 +1,9 @@
+{
+  "name": "gapvise-ai",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev:backend": "npm run dev -w packages/backend",
+    "test": "npm test -w packages/backend"
+  }
+}

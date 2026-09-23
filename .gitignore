@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+*.local
+serviceAccountKey.json
+*.log
+.DS_Store
+
+# MediaPipe runtime + models — recreate with: npm run setup:mediapipe -w packages/candidate-frontend
+packages/candidate-frontend/public/mediapipe/
