@@ -10,22 +10,22 @@ describe("JWT type-claim checks", () => {
   it("accepts each token at its own verifier", () => {
     expect(verifyAdminAccess(signAdminAccess("a1", "ADMIN"))).toMatchObject({ adminId: "a1", role: "ADMIN", type: "access" });
     expect(verifyAdminRefresh(signAdminRefresh("a1", "MASTER_ADMIN"))).toMatchObject({ adminId: "a1", type: "refresh" });
-    expect(verifyCandidateAccess(signCandidateAccess("i1", "E1"))).toMatchObject({ interviewId: "i1", empId: "E1", type: "access" });
-    expect(verifyCandidateRefresh(signCandidateRefresh("i1", "E1"))).toMatchObject({ type: "refresh" });
+    expect(verifyCandidateAccess(signCandidateAccess("i1", "cand@example.com"))).toMatchObject({ interviewId: "i1", email: "cand@example.com", type: "access" });
+    expect(verifyCandidateRefresh(signCandidateRefresh("i1", "cand@example.com"))).toMatchObject({ type: "refresh" });
   });
 
   it("rejects an access token presented at /refresh (acceptance #24)", () => {
     expect(verifyAdminRefresh(signAdminAccess("a1", "ADMIN"))).toBeNull();
-    expect(verifyCandidateRefresh(signCandidateAccess("i1", "E1"))).toBeNull();
+    expect(verifyCandidateRefresh(signCandidateAccess("i1", "cand@example.com"))).toBeNull();
   });
 
   it("rejects a refresh token used as an access token", () => {
     expect(verifyAdminAccess(signAdminRefresh("a1", "ADMIN"))).toBeNull();
-    expect(verifyCandidateAccess(signCandidateRefresh("i1", "E1"))).toBeNull();
+    expect(verifyCandidateAccess(signCandidateRefresh("i1", "cand@example.com"))).toBeNull();
   });
 
   it("does not let a candidate token pass as an admin token", () => {
-    expect(verifyAdminAccess(signCandidateAccess("i1", "E1"))).toBeNull();
+    expect(verifyAdminAccess(signCandidateAccess("i1", "cand@example.com"))).toBeNull();
   });
 
   it("returns null (never throws) for garbage, missing, wrong-secret and expired tokens", () => {

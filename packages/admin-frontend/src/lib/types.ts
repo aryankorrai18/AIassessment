@@ -53,9 +53,9 @@ export interface JdExtraction {
 }
 
 export interface CandidateRow {
-  empId: string;
-  empName: string;
-  empEmail: string;
+  email: string; // the candidate record ID
+  name: string;
+  refId: string | null;
   skills: string[];
   tier: string;
   skillCluster: string;
@@ -81,9 +81,9 @@ export interface QuestionRow {
 
 export interface UnscheduledRow {
   interviewId: string;
-  empId: string;
-  empName: string;
-  empEmail: string;
+  email: string;
+  name: string;
+  refId: string | null;
   cluster: string;
   jdRef: string | null;
 }
@@ -95,9 +95,8 @@ export interface ScheduledRow extends UnscheduledRow {
 }
 
 export interface IssuedKey {
-  empId: string;
+  email: string;
   name: string;
-  empEmail: string;
   key: string;
   scheduledAt: number;
   emailSent: boolean;
@@ -123,7 +122,8 @@ export type IntegrityVerdict = "Clean" | "Minor Concerns" | "Significant Concern
 
 export interface ResultRow {
   interviewId: string;
-  empId: string;
+  email: string;
+  refId: string | null;
   candidateName: string;
   cluster: string;
   jdTitle: string | null;

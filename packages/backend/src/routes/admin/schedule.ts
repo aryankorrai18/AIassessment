@@ -14,9 +14,8 @@ import type { CandidateDoc, InterviewDoc } from "../../types/domain";
 const router = Router();
 
 export interface IssuedKey {
-  empId: string;
+  email: string;
   name: string;
-  empEmail: string;
   key: string; // RAW — returned exactly once, never stored
   scheduledAt: number;
   emailSent: boolean;
@@ -67,14 +66,12 @@ async function issueKey(interviewId: string, interview: InterviewDoc, candidate:
     tx.update(ref, update);
   });
 
-  const name = candidate?.empName ?? interview.candidateId;
-  const empEmail = candidate?.empEmail ?? "";
+  const name = candidate?.name ?? interview.candidateId;
+  const email = interview.candidateId; // the candidate record ID is their email
   // Delivery failure never fails the request — the admin still has the key.
-  const email = empEmail
-    ? await sendEmail(accessKeyEmail({ to: empEmail, name, empId: interview.candidateId, key, scheduledAt: when }))
-    : { sent: false, previewUrl: null };
+  const delivery = await sendEmail(accessKeyEmail({ to: email, name, key, scheduledAt: when }));
 
-  return { empId: interview.candidateId, name, empEmail, key, scheduledAt: when.getTime(), emailSent: email.sent, emailPreviewUrl: email.previewUrl };
+  return { email, name, key, scheduledAt: when.getTime(), emailSent: delivery.sent, emailPreviewUrl: delivery.previewUrl };
 }
 
 router.get("/unscheduled", async (_req, res) => {
@@ -85,9 +82,9 @@ router.get("/unscheduled", async (_req, res) => {
     const candidate = candidates.get(interview.candidateId);
     return {
       interviewId: d.id,
-      empId: interview.candidateId,
-      empName: candidate?.empName ?? interview.candidateId,
-      empEmail: candidate?.empEmail ?? "",
+      email: interview.candidateId,
+      name: candidate?.name ?? interview.candidateId,
+      refId: candidate?.refId ?? null,
       cluster: candidate?.skillCluster ?? "unknown",
       jdRef: interview.jdRef ?? null,
     };
@@ -102,9 +99,9 @@ router.get("/", async (_req, res) => {
     const candidate = candidates.get(interview.candidateId);
     return {
       interviewId: d.id,
-      empId: interview.candidateId,
-      empName: candidate?.empName ?? interview.candidateId,
-      empEmail: candidate?.empEmail ?? "",
+      email: interview.candidateId,
+      name: candidate?.name ?? interview.candidateId,
+      refId: candidate?.refId ?? null,
       cluster: candidate?.skillCluster ?? "unknown",
       jdRef: interview.jdRef ?? null,
       status: interview.status,
@@ -133,8 +130,8 @@ router.post("/", async (req, res) => {
     action: "INTERVIEW_SCHEDULED",
     targetType: "interview",
     targetId: interviewId,
-    summary: `Scheduled ${issued.name} (${issued.empId}) for ${new Date(scheduledAt).toISOString()}`,
-    detail: { empId: issued.empId, scheduledAt, emailSent: issued.emailSent },
+    summary: `Scheduled ${issued.name} (${issued.email}) for ${new Date(scheduledAt).toISOString()}`,
+    detail: { email: issued.email, scheduledAt, emailSent: issued.emailSent },
   });
   res.json({ issued: [issued] });
 });
@@ -155,7 +152,7 @@ router.post("/bulk", async (req, res) => {
     if (!interview) return failed.push({ interviewId, error: "Interview not found." });
     if (!SCHEDULABLE.has(interview.status)) return failed.push({ interviewId, error: NOT_SCHEDULABLE });
     const candidate = candidates.get(interview.candidateId);
-    if (!candidate?.empEmail) return failed.push({ interviewId, error: "No email on file." });
+    if (!candidate) return failed.push({ interviewId, error: "Candidate not found." });
     try {
       issued.push(await issueKey(interviewId, interview, candidate, scheduledAt));
     } catch (err) {
@@ -170,7 +167,7 @@ router.post("/bulk", async (req, res) => {
       targetType: "interview",
       targetId: interviewIds.join(","),
       summary: `Scheduled ${issued.length} interview(s) for ${scheduledAt.toISOString()}${failed.length ? ` (${failed.length} failed)` : ""}`,
-      detail: { empIds: issued.map((k) => k.empId), failed, scheduledAt: parsed.data.scheduledAt },
+      detail: { emails: issued.map((k) => k.email), failed, scheduledAt: parsed.data.scheduledAt },
     });
   }
   res.json({ issued, failed });
@@ -189,8 +186,8 @@ router.post("/:interviewId/resend", async (req, res) => {
     action: "ACCESS_KEY_REISSUED",
     targetType: "interview",
     targetId: interviewId,
-    summary: `Reissued the access key for ${issued.name} (${issued.empId})`,
-    detail: { empId: issued.empId, emailSent: issued.emailSent },
+    summary: `Reissued the access key for ${issued.name} (${issued.email})`,
+    detail: { email: issued.email, emailSent: issued.emailSent },
   });
   res.json({ issued: [issued] });
 });
@@ -221,7 +218,7 @@ router.post("/:interviewId/reschedule", async (req, res) => {
     targetType: "interview",
     targetId: interviewId,
     summary: `Rescheduled ${interview.candidateId} to ${scheduledAt.toISOString()}`,
-    detail: { empId: interview.candidateId, scheduledAt: parsed.data.scheduledAt, rescheduled: true },
+    detail: { email: interview.candidateId, scheduledAt: parsed.data.scheduledAt, rescheduled: true },
   });
   res.json({ ok: true });
 });

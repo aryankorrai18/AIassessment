@@ -57,9 +57,9 @@ export async function loadResultDetail(interviewId: string, interview: Interview
   };
 }
 
-export async function loadCandidate(empId: string): Promise<CandidateDoc | undefined> {
-  if (!empId || empId.includes("/")) return undefined;
-  return (await candidatesCol().doc(empId).get()).data();
+export async function loadCandidate(email: string): Promise<CandidateDoc | undefined> {
+  if (!email || email.includes("/")) return undefined;
+  return (await candidatesCol().doc(email).get()).data();
 }
 
 export async function getInterview(interviewId: string) {

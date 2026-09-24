@@ -59,10 +59,11 @@ export interface JdMasterDoc {
   updatedAt: Timestamp;
 }
 
-// Collection: candidates (doc ID = empId)
+// Collection: candidates (doc ID = email, trimmed + lowercased)
 export interface CandidateDoc {
-  empName: string;
-  empEmail: string;
+  name: string;
+  email: string;           // same value as the doc ID
+  refId: string | null;    // optional customer reference (employee / applicant / requisition ID); display + export only
   skills: string[];        // top-5-by-weight from the matched JD
   tier: string;            // STRING "1".."4", not a number
   skillCluster: string;
@@ -97,7 +98,7 @@ export interface JdSnapshot {
 
 // Collection: interviews (doc ID generated). One candidate MAY have several.
 export interface InterviewDoc {
-  candidateId: string;     // = Candidate doc ID (empId)
+  candidateId: string;     // = Candidate doc ID (the candidate's email)
   jdRef?: string | null;   // IMMUTABLE, captured at interview creation
   accessKeyHash: string;   // bcrypt; raw key never stored
   status: InterviewStatus;
@@ -139,7 +140,7 @@ export interface QuestionBankDoc {
 }
 
 export interface DemandClusterDoc { unitSkills: string[] }          // doc ID = cluster name
-export interface CompletedInterviewDoc { completedAt: Timestamp }    // doc ID = empId; write-only marker
+export interface CompletedInterviewDoc { completedAt: Timestamp }    // doc ID = candidate email; write-only marker
 
 export interface ApiUsageLogDoc {
   purpose: string; promptTokens: number; responseTokens: number;

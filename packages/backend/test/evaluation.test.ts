@@ -14,7 +14,7 @@ function stateWith(sections: { section: "definitions" | "scenarios"; skills: (st
     questions: skills.map((skill, i) => ({ id: `${section}-${i}`, section, index: i + 1, prompt: `Q ${section} ${i}`, skill })),
   }));
   return {
-    profile: { empId: "E1", empName: "T", cluster: "Java", jdRef: "jd", hasCoding: false },
+    profile: { email: "t@example.com", name: "T", refId: null, cluster: "Java", jdRef: "jd", hasCoding: false },
     plan,
     currentSection: plan[0].section,
     sectionStartedAt: 0,

@@ -5,23 +5,24 @@ import { db } from "../../config/firebase";
 import { recordAudit } from "../../lib/audit";
 import { candidatesCol, interviewsCol, jdMasterCol } from "../../lib/collections";
 import { firstZodIssue } from "../../lib/errors";
-import { NO_SLASH, toMillis } from "../../lib/validation";
+import { isCandidateEmail, normalizeEmail, toMillis } from "../../lib/validation";
 import type { InterviewDoc, InterviewStatus, JdMasterDoc, RequiredSkill } from "../../types/domain";
 
 const router = Router();
 
 const rowSchema = z.object({
   rowIndex: z.number(),
-  empId: z.string().trim().min(1).refine(NO_SLASH, 'Emp ID must not contain a "/" character.'),
-  empName: z.string().trim().min(1),
-  empEmail: z.string().trim(), // format checked per row so one bad address skips that row, not the batch
+  // The email is the candidate record ID. Its format is checked per row, so one bad
+  // address skips that row instead of failing the whole batch.
+  email: z.string().trim().min(1, "Email is required."),
+  name: z.string().trim().min(1, "Name is required."),
+  refId: z.string().trim().default(""),
   skillCluster: z.string().trim().min(1),
   tier: z.string().trim().default("4"),
   jdReference: z.string().trim().default(""),
 });
 const importSchema = z.object({ rows: z.array(rowSchema), batchId: z.string().trim().min(1) });
 const reassessSchema = z.object({ jdReference: z.string().trim().min(1) });
-const isEmail = (v: string) => z.string().email().safeParse(v).success;
 
 const STATUS_RANK: Record<InterviewStatus, number> = { ACTIVE: 4, PENDING: 3, COMPLETED: 2, NO_SHOW: 1, EXPIRED: 0 };
 
@@ -68,20 +69,20 @@ router.post("/import", async (req, res) => {
   const seen = new Set<string>();
 
   const results = await Promise.all(rows.map(async (row) => {
-    // Stored uppercase: candidate login uppercases the Emp ID it is given.
-    const empId = row.empId.toUpperCase();
-    const skip = (error: string) => ({ rowIndex: row.rowIndex, empId, status: "skipped" as const, error });
+    const email = normalizeEmail(row.email);
+    const skip = (error: string) => ({ rowIndex: row.rowIndex, email, status: "skipped" as const, error });
 
-    if (seen.has(empId)) return skip("Duplicate Emp ID within this batch.");
-    seen.add(empId);
-    if (!isEmail(row.empEmail)) return skip("Invalid email.");
+    if (!isCandidateEmail(email)) return skip("Invalid email.");
+    if (seen.has(email)) return skip("Duplicate email within this batch.");
+    seen.add(email);
 
     const match = row.jdReference ? jdsByTitle.get(row.jdReference.toLowerCase()) : undefined;
     const batch = db.batch();
     // .create() is an atomic dedup against a resubmitted chunk; the whole batch fails if it exists.
-    batch.create(candidatesCol().doc(empId), {
-      empName: row.empName,
-      empEmail: row.empEmail,
+    batch.create(candidatesCol().doc(email), {
+      name: row.name,
+      email,
+      refId: row.refId || null,
       skills: match ? topSkills(match.jd.requiredSkills) : [],
       tier: row.tier || "4",
       skillCluster: row.skillCluster,
@@ -90,14 +91,14 @@ router.post("/import", async (req, res) => {
       batchId,
       createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
     });
-    batch.set(interviewsCol().doc(), newInterviewDoc(empId, match?.jdRef ?? null));
+    batch.set(interviewsCol().doc(), newInterviewDoc(email, match?.jdRef ?? null));
     try {
       await batch.commit();
     } catch (err) {
-      if ((err as { code?: number }).code === 6 /* ALREADY_EXISTS */) return skip("Emp ID already imported.");
+      if ((err as { code?: number }).code === 6 /* ALREADY_EXISTS */) return skip("Email already imported.");
       throw err;
     }
-    return { rowIndex: row.rowIndex, empId, status: "imported" as const };
+    return { rowIndex: row.rowIndex, email, status: "imported" as const };
   }));
 
   const imported = results.filter((r) => r.status === "imported").length;
@@ -107,7 +108,7 @@ router.post("/import", async (req, res) => {
       targetType: "batch",
       targetId: batchId,
       summary: `Imported ${imported} candidate(s)${results.length > imported ? `, skipped ${results.length - imported}` : ""}`,
-      detail: { batchId, imported, skipped: results.length - imported, empIds: results.filter((r) => r.status === "imported").map((r) => r.empId) },
+      detail: { batchId, imported, skipped: results.length - imported, emails: results.filter((r) => r.status === "imported").map((r) => r.email) },
     });
   }
   res.json({ imported, results });
@@ -126,8 +127,8 @@ router.get("/", async (_req, res) => {
   res.json(candidates.docs.map((d) => {
     const statuses = statusesByCandidate.get(d.id) ?? [];
     return {
-      empId: d.id,
       ...d.data(),
+      email: d.id,
       createdAt: toMillis(d.data().createdAt),
       interviewStatus: highestInterviewStatus(statuses),
       interviewCount: statuses.length,
@@ -135,14 +136,14 @@ router.get("/", async (_req, res) => {
   }));
 });
 
-router.post("/:empId/reassess", async (req, res) => {
+router.post("/:email/reassess", async (req, res) => {
   const parsed = reassessSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "jdReference is required." });
   const { jdReference } = parsed.data;
-  const empId = req.params.empId;
+  const email = normalizeEmail(req.params.email);
 
-  if (!NO_SLASH(empId)) return res.status(404).json({ error: "Candidate not found." });
-  const candidateRef = candidatesCol().doc(empId);
+  if (!isCandidateEmail(email)) return res.status(404).json({ error: "Candidate not found." });
+  const candidateRef = candidatesCol().doc(email);
   if (!(await candidateRef.get()).exists) return res.status(404).json({ error: "Candidate not found." });
 
   const match = (await loadJdsByTitle()).get(jdReference.toLowerCase());
@@ -151,13 +152,13 @@ router.post("/:empId/reassess", async (req, res) => {
   // Transactional guard: a second PENDING/ACTIVE attempt can never be created concurrently.
   const interviewRef = interviewsCol().doc();
   const conflict = await db.runTransaction(async (tx) => {
-    const existing = await tx.get(interviewsCol().where("candidateId", "==", empId));
+    const existing = await tx.get(interviewsCol().where("candidateId", "==", email));
     const statuses = existing.docs.map((d) => d.data().status);
     if (statuses.includes("ACTIVE")) return "This candidate is currently taking an interview.";
     if (statuses.includes("PENDING")) {
       return "This candidate already has an interview awaiting scheduling — schedule or cancel that one first.";
     }
-    tx.set(interviewRef, newInterviewDoc(empId, match.jdRef));
+    tx.set(interviewRef, newInterviewDoc(email, match.jdRef));
     // Candidate.jdRef is mutable and overwritten by every reassess; past interviews keep their own jdRef.
     tx.update(candidateRef, { jdRef: match.jdRef, skills: topSkills(match.jd.requiredSkills) });
     return null;
@@ -167,23 +168,23 @@ router.post("/:empId/reassess", async (req, res) => {
   await recordAudit(req.admin!, {
     action: "INTERVIEW_ATTEMPT_ADDED",
     targetType: "candidate",
-    targetId: empId,
-    summary: `Added a re-assessment for ${empId} against JD "${match.jd.title}"`,
+    targetId: email,
+    summary: `Added a re-assessment for ${email} against JD "${match.jd.title}"`,
     detail: { interviewId: interviewRef.id, jdRef: match.jdRef },
   });
   res.status(201).json({ interviewId: interviewRef.id, jdRef: match.jdRef, jdTitle: match.jd.title });
 });
 
-router.delete("/:empId", async (req, res) => {
-  const empId = req.params.empId;
+router.delete("/:email", async (req, res) => {
+  const email = normalizeEmail(req.params.email);
   const cascade = req.query.cascade === "true";
-  if (!NO_SLASH(empId)) return res.status(404).json({ error: "Candidate not found." });
+  if (!isCandidateEmail(email)) return res.status(404).json({ error: "Candidate not found." });
 
-  const candidateRef = candidatesCol().doc(empId);
+  const candidateRef = candidatesCol().doc(email);
   const candidate = (await candidateRef.get()).data();
   if (!candidate) return res.status(404).json({ error: "Candidate not found." });
 
-  const interviews = await interviewsCol().where("candidateId", "==", empId).get();
+  const interviews = await interviewsCol().where("candidateId", "==", email).get();
   if (interviews.docs.some((d) => d.data().status === "ACTIVE")) {
     return res.status(409).json({ error: "This candidate is currently taking their interview and can't be deleted right now." });
   }
@@ -197,11 +198,11 @@ router.delete("/:empId", async (req, res) => {
   await recordAudit(req.admin!, {
     action: "CANDIDATE_DELETED",
     targetType: "candidate",
-    targetId: empId,
+    targetId: email,
     summary: cascade
-      ? `Deleted candidate ${candidate.empName} (${empId}) and ${interviews.size} interview record(s)`
-      : `Deleted candidate ${candidate.empName} (${empId}); interview records kept`,
-    detail: { cascade, interviewCount: interviews.size, empEmail: candidate.empEmail },
+      ? `Deleted candidate ${candidate.name} (${email}) and ${interviews.size} interview record(s)`
+      : `Deleted candidate ${candidate.name} (${email}); interview records kept`,
+    detail: { cascade, interviewCount: interviews.size, refId: candidate.refId },
   });
   res.json({ ok: true, interviewCount: interviews.size, deletedInterviewCount: cascade ? interviews.size : 0 });
 });

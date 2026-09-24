@@ -16,6 +16,6 @@ export async function requireCandidate(req: Request, res: Response, next: NextFu
     return res.status(401).json({ error: "This interview session is no longer active." });
   }
 
-  req.candidateSession = { interviewId: payload.interviewId, empId: payload.empId };
+  req.candidateSession = { interviewId: payload.interviewId, email: payload.email };
   next();
 }

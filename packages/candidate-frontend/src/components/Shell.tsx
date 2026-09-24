@@ -34,7 +34,7 @@ export function Shell() {
           </div>
         </div>
         <div className="cand-header-right">
-          {profile && <span><strong>{profile.empName}</strong> · <span className="mono">{profile.empId}</span></span>}
+          {profile && <span><strong>{profile.name}</strong> · {profile.email}</span>}
           <ThemeToggle />
         </div>
       </header>

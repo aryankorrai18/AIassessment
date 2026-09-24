@@ -7,7 +7,7 @@ import type { CandidateProfile } from "../lib/types";
 export default function Login() {
   const { loading, profile, interview, consentGiven, setProfile, resumeInterview } = useCandidate();
   const navigate = useNavigate();
-  const [empId, setEmpId] = useState("");
+  const [email, setEmail] = useState("");
   const [accessKey, setAccessKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +22,7 @@ export default function Login() {
     setBusy(true);
     setError(null);
     try {
-      const r = await api<{ profile: CandidateProfile; interviewStatus: "PENDING" | "ACTIVE" }>("/auth/login", { empId, accessKey });
+      const r = await api<{ profile: CandidateProfile; interviewStatus: "PENDING" | "ACTIVE" }>("/auth/login", { email, accessKey });
       // Already started on another visit? Resume at the same question rather than restarting.
       const resumed = r.interviewStatus === "ACTIVE" && (await resumeInterview());
       setProfile(r.profile);
@@ -42,18 +42,18 @@ export default function Login() {
         </div>
         <div>
           <h1 style={{ fontSize: 22 }}>GapVise AI Assessment</h1>
-          <p className="muted" style={{ margin: "6px 0 0" }}>Enter the Employee ID and access key from your invitation email.</p>
+          <p className="muted" style={{ margin: "6px 0 0" }}>Enter your email address and the access key from your invitation email.</p>
         </div>
         <div className="field">
-          <label htmlFor="emp">Employee ID</label>
-          <input id="emp" type="text" autoFocus autoComplete="username" placeholder="e.g. EMP001234" value={empId} onChange={(e) => setEmpId(e.target.value)} />
+          <label htmlFor="email">Email</label>
+          <input id="email" type="email" autoFocus autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <div className="field">
           <label htmlFor="key">Access Key</label>
           <input id="key" type="password" autoComplete="off" placeholder="Your 12-character key" value={accessKey} onChange={(e) => setAccessKey(e.target.value)} />
         </div>
         {error && <p className="error-text" role="alert" style={{ margin: 0 }}>{error}</p>}
-        <button className="btn full" type="submit" disabled={busy || !empId.trim() || !accessKey.trim()}>{busy ? "Checking…" : "Continue →"}</button>
+        <button className="btn full" type="submit" disabled={busy || !email.trim() || !accessKey.trim()}>{busy ? "Checking…" : "Continue →"}</button>
       </form>
     </div>
   );

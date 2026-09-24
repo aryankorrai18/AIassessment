@@ -60,7 +60,7 @@ input[type="text"], input[type="password"], textarea {
   width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center;
   background: var(--accent-soft); color: var(--accent);
 }
-.login-card input { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: 1px; }
+.login-card input#key { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: 1px; }
 
 /* ---- Instructions ---- */
 .guidelines { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin: 20px 0; }

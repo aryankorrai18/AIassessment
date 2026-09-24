@@ -21,8 +21,9 @@ export const answerRecordSchema = z.object({
 });
 
 export const candidateProfileSchema = z.object({
-  empId: z.string(),
-  empName: z.string(),
+  email: z.string(),
+  name: z.string(),
+  refId: z.string().nullable(),
   cluster: z.string(),
   jdRef: z.string().nullable(),
   hasCoding: z.boolean(),

@@ -53,7 +53,7 @@ guess produces incorrect behavior.
 | 6 | Asking Gemini for aggregate scores | Gemini returns **only** per-question 0–10 scores and qualitative text. `overallScore`, `sectionScores[].score`, `category`, and `demonstratedLevel` are all computed in code. Never ask the model for a number code can derive. |
 | 7 | Conflating "Not Awarded" and "Not Assessed" | "Not Awarded" = the skill was tested and scored below L1. "Not Assessed" = no tagged question for that skill was ever reached. They render differently and `met` is forced `false` for "Not Assessed". |
 | 8 | Using `Math.random()` for access keys | Access keys use `crypto.randomInt` (CSPRNG). `Math.random()` is used *only* for question sampling, where it's fine. |
-| 9 | Letting a `/` reach a Firestore doc ID | Firestore's `.doc()` throws **synchronously** on an ID containing `/`. IDs derived from user input (empId, JD title) must be rejected at validation time, not sanitized (sanitizing lets two distinct values collide). |
+| 9 | Letting a `/` reach a Firestore doc ID | Firestore's `.doc()` throws **synchronously** on an ID containing `/`. IDs derived from user input (candidate email, JD title) must be rejected at validation time, not sanitized (sanitizing lets two distinct values collide). |
 | 10 | Storing the raw access key | Only the bcrypt hash is stored. The raw key is returned to the admin exactly once, in the scheduling response. |
 | 11 | Making evaluation block the candidate | Evaluation is fire-and-forget after the completion transaction commits. The candidate sees their end screen immediately. |
 | 12 | Showing the candidate their score | The candidate **never** sees a score, category, or feedback. The end screen shows only a count of answers recorded. |
@@ -141,9 +141,9 @@ Technical screening is slow, inconsistent and hard to defend:
   against client job descriptions quickly and show clients the evidence.
 - **Learning & development and internal-mobility teams** that assess existing
   employees against a target role to find skill gaps before redeployment or
-  upskilling. (This is why the candidate identifier is a customer-assigned ID
-  — an employee ID internally, an applicant or requisition ID externally; see
-  §3.7.)
+  upskilling. (Candidates are identified by email, which works for employees
+  and applicants alike; the customer's own employee or applicant ID can ride
+  along as an optional reference — see §3.7.)
 
 ### 3.4 Primary use cases
 
@@ -169,7 +169,7 @@ without writing questions; import and schedule many candidates at once; review
 results and export them.
 
 **Candidate.** An applicant (or employee) being assessed. Receives a one-time
-access key by email, signs in with their candidate ID + key, takes a timed,
+access key by email, signs in with their email address + key, takes a timed,
 skill-relevant interview, and is not falsely penalized by proctoring for normal
 behavior. Exactly one attempt per scheduled interview; never sees a score.
 
@@ -197,10 +197,13 @@ flaky connection.
   roadmap (§15).
 - **JD** — a job description, stored in the JD Master and identified by its
   lowercased title (`jdRef`).
-- **Candidate ID** — the customer-assigned identifier for a person being
-  assessed. In the data model and API it keeps the field name `empId` and the
-  Excel column "Emp ID" for compatibility; customers may use employee IDs,
-  applicant IDs or requisition IDs.
+- **Candidate email** — the identifier for a person being assessed. It is the
+  candidate record's ID (trimmed and lowercased), what the candidate signs in
+  with, and how duplicate imports are caught. Because it is a record ID, changing
+  a candidate's email means deleting and re-importing them.
+- **Reference ID** (`refId`) — an optional customer-assigned ID (employee,
+  applicant or requisition ID), shown in lists and exports but never used for
+  lookups.
 - **Attempt / interview** — one scheduled assessment of one candidate against
   one JD. A candidate can have several over time.
 
@@ -271,10 +274,11 @@ export interface JdMasterDoc {
   updatedAt: Timestamp;
 }
 
-// Collection: candidates (doc ID = empId)
+// Collection: candidates (doc ID = email, trimmed + lowercased)
 export interface CandidateDoc {
-  empName: string;
-  empEmail: string;
+  name: string;
+  email: string;           // same value as the doc ID
+  refId: string | null;    // optional customer reference; display + export only
   skills: string[];        // top-5-by-weight from the matched JD
   tier: string;            // STRING "1".."4", not a number
   skillCluster: string;
@@ -303,7 +307,7 @@ export interface ReportEmbed {
 
 // Collection: interviews (doc ID generated). One candidate MAY have several.
 export interface InterviewDoc {
-  candidateId: string;     // = Candidate doc ID (empId)
+  candidateId: string;     // = Candidate doc ID (the candidate's email)
   jdRef?: string | null;   // IMMUTABLE, captured at interview creation
   accessKeyHash: string;   // bcrypt; raw key never stored
   status: InterviewStatus;
@@ -345,7 +349,7 @@ export interface QuestionBankDoc {
 }
 
 export interface DemandClusterDoc { unitSkills: string[] }          // doc ID = cluster name
-export interface CompletedInterviewDoc { completedAt: Timestamp }    // doc ID = empId; write-only marker
+export interface CompletedInterviewDoc { completedAt: Timestamp }    // doc ID = candidate email; write-only marker
 
 export interface ApiUsageLogDoc {
   purpose: string; promptTokens: number; responseTokens: number;
@@ -393,7 +397,7 @@ export interface AnswerRecord {
 }
 
 export interface CandidateProfile {
-  empId: string; empName: string; cluster: string;
+  email: string; name: string; refId: string | null; cluster: string;
   jdRef: string | null; hasCoding: boolean;
 }
 
@@ -601,9 +605,11 @@ Each row creates a `Candidate` doc via `.create()` (atomic dedup against a
 resubmitted chunk) **and** a `PENDING` `Interview` doc with `accessKeyHash: ""`
 and `schedule: null`.
 
-The candidate ID (`empId`) is **stored uppercased**, because candidate login
-uppercases the ID it is given (§7.8) — an ID imported in lowercase would
-otherwise never be able to sign in.
+**The candidate's email is the record ID.** It is trimmed and lowercased on
+import, at login, and in every URL that names a candidate, so
+`Alice@Example.com` and `alice@example.com` are the same person. Emails are
+validated per row against `/^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/` (no `/`, which
+Firestore can't hold in a doc ID).
 
 **`batchId`** is generated **once per whole import operation** on the frontend,
 *before* chunking — so a large import split into sequential 200-row chunks still
@@ -771,7 +777,7 @@ On expiry the section is skipped (or the interview completed if it was the last)
 
 **On completion** (from any path): set `status: "COMPLETED"`, `completedAt`,
 `report: { status: "PENDING", attempts: 0, lastError: null, pdfPath: null,
-jsonSummary: null, generatedAt: null }`, write a `completedInterviews/{empId}`
+jsonSummary: null, generatedAt: null }`, write a `completedInterviews/{email}`
 doc, then fire `evaluateInterview()` **without awaiting it**.
 
 ### 6.6 Proctoring and integrity scoring
@@ -979,7 +985,7 @@ verdict, per-violation entries with embedded snapshots, auto-paginated) · full
 Interview Transcript (unreached questions styled distinctly) · disclaimer footer
 on every page.
 
-Filename: `` `${empId}_${name}_${jdTitle}_${YYYY-MM-DD}.pdf` ``, each part run
+Filename: `` `${name}_${email}_${jdTitle}_${YYYY-MM-DD}.pdf` ``, each part run
 through `s.replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/g, "")`.
 
 **Excel export** exists **client-side only**, in the admin frontend. There is no
@@ -1126,12 +1132,11 @@ itself as the actor.
 ### 7.2 Candidates — `/api/admin/candidates`
 
 ```ts
-const NO_SLASH = (v: string) => !v.includes("/");
 const rowSchema = z.object({
   rowIndex: z.number(),
-  empId: z.string().trim().min(1).refine(NO_SLASH, 'Emp ID must not contain a "/" character.'),
-  empName: z.string().trim().min(1),
-  empEmail: z.string().trim().email(),
+  email: z.string().trim().min(1, "Email is required."),   // format checked per row (skip, not 400)
+  name: z.string().trim().min(1, "Name is required."),
+  refId: z.string().trim().default(""),                    // stored as null when blank
   skillCluster: z.string().trim().min(1),
   tier: z.string().trim().default("4"),
   jdReference: z.string().trim().default(""),
@@ -1142,16 +1147,18 @@ const reassessSchema = z.object({ jdReference: z.string().trim().min(1) });
 
 | Route | Success |
 |---|---|
-| `POST /import` | `200 { imported: number, results: { rowIndex, empId, status: "imported"\|"skipped", error? }[] }` |
-| `GET /` | `200` array of `{ empId, ...CandidateDoc, createdAt: number\|null, interviewStatus, interviewCount }` |
-| `POST /:empId/reassess` | **`201`** `{ interviewId, jdRef, jdTitle }` |
-| `DELETE /:empId?cascade=true` | `200 { ok: true, interviewCount, deletedInterviewCount }` |
+| `POST /import` | `200 { imported: number, results: { rowIndex, email, status: "imported"\|"skipped", error? }[] }` |
+| `GET /` | `200` array of `{ ...CandidateDoc, createdAt: number\|null, interviewStatus, interviewCount }` |
+| `POST /:email/reassess` | **`201`** `{ interviewId, jdRef, jdTitle }` |
+| `DELETE /:email?cascade=true` | `200 { ok: true, interviewCount, deletedInterviewCount }` |
 
 `interviewStatus` = highest-ranked status across the candidate's interviews,
 rank `{ ACTIVE: 4, PENDING: 3, COMPLETED: 2, NO_SHOW: 1, EXPIRED: 0 }`.
 
-Per-row skip reasons, exact: `"Duplicate Emp ID within this batch."`,
-`"Invalid email."`, `"Emp ID already imported."`.
+Per-row skip reasons, exact: `"Invalid email."`,
+`"Duplicate email within this batch."`, `"Email already imported."`. The
+`:email` route parameter is URL-encoded by the client and normalized by the
+server.
 
 ### 7.3 JD Master — `/api/admin/jd-master`
 
@@ -1165,6 +1172,7 @@ Per-row skip reasons, exact: `"Duplicate Emp ID within this batch."`,
 | `DELETE /:jdRef` | — | `200 { ok: true, deletedQuestionCount }` |
 
 ```ts
+const NO_SLASH = (v: string) => !v.includes("/");   // jdRef is a Firestore doc ID (§1 #9)
 const saveSchema = z.object({
   title: z.string().trim().min(1, "Title is required.").refine(NO_SLASH, 'Title must not contain a "/" character.'),
   jobRole: z.string().nullable().default(null),
@@ -1185,13 +1193,13 @@ const saveSchema = z.object({
 
 `IssuedKey` shape:
 ```ts
-{ empId: string, name: string, empEmail: string, key: string /* RAW, shown once */,
+{ email: string, name: string, key: string /* RAW, shown once */,
   scheduledAt: number, emailSent: boolean, emailPreviewUrl: string|null }
 ```
 
 | Route | Request | Success |
 |---|---|---|
-| `GET /unscheduled` | — | `200` array of `{ interviewId, empId, empName, empEmail, cluster, jdRef }` |
+| `GET /unscheduled` | — | `200` array of `{ interviewId, email, name, refId, cluster, jdRef }` |
 | `GET /` | — | `200` array of the above + `{ status, scheduledAt: number, reminderCount }` |
 | `POST /` | `{ interviewId, scheduledAt /* ISO */ }` | `200 { issued: IssuedKey[] }` (always 1 element) |
 | `POST /bulk` | `{ interviewIds: string[] (min 1), scheduledAt }` | `200 { issued: IssuedKey[], failed: { interviewId, error }[] }` |
@@ -1200,7 +1208,7 @@ const saveSchema = z.object({
 | `POST /run-no-show-sweep` | — | `200 { checked, reminded, escalated, errors[] }` |
 | `POST /run-idle-sweep` | — | `200 { checked, finalized, errors[] }` |
 
-`failed[].error` is exactly `"Interview not found."` or `"No email on file."`.
+`failed[].error` is exactly `"Interview not found."` or `"Candidate not found."`.
 
 ### 7.5 Question bank — `/api/admin/question-bank`
 
@@ -1235,7 +1243,7 @@ always `null`). Without, it is `orderBy("createdAt","desc")` cursor pagination;
 
 List row:
 ```ts
-{ interviewId, empId, candidateName, cluster, jdTitle: string|null, batchId: string|null,
+{ interviewId, email, refId: string|null, candidateName, cluster, jdTitle: string|null, batchId: string|null,
   status: "COMPLETED"|"EVAL_FAILED"|"NO_SHOW",   // derived
   reportStatus: ReportStatus|null,
   score: number|null,            // RAW 0-100
@@ -1289,19 +1297,19 @@ failure is reported in the body at `200`.
 ### 7.8 Candidate auth — `/api/interview/auth`
 
 ```ts
-CandidateProfile = { empId, empName, cluster /* = skillCluster */, jdRef: string|null,
+CandidateProfile = { email, name, refId: string|null, cluster /* = skillCluster */, jdRef: string|null,
                      hasCoding: boolean /* = JD.requiresCoding, false if no JD */ }
 ```
 
 | Route | Guard | Request | Success |
 |---|---|---|---|
-| `POST /login` | rate-limited (IP **+** empId) | `{ empId, accessKey }` — empId uppercased/trimmed | `200 { profile, interviewStatus: "PENDING"\|"ACTIVE" }` + cookies |
+| `POST /login` | rate-limited (IP **+** email) | `{ email, accessKey }` — email trimmed/lowercased | `200 { profile, interviewStatus: "PENDING"\|"ACTIVE" }` + cookies |
 | `POST /refresh` | — | refresh cookie | `200 { ok: true }` (re-checks interview is PENDING/ACTIVE) |
 | `GET /me` | `requireCandidate` | — | `200 { profile, interviewStatus }` |
 | `POST /logout` | **none** | — | `200 { ok: true }` |
 
 Login checks the bcrypt key against **every** PENDING/ACTIVE interview for that
-empId that has both a `schedule` and an `accessKeyHash`. The access key is
+email that has both a `schedule` and an `accessKeyHash`. The access key is
 also trimmed and uppercased. A successful login moves the interview to
 `ACTIVE` (this is what takes it off the no-show ladder, §6.9);
 `interviewStatus` in the response is the status **before** login, so
@@ -1363,8 +1371,8 @@ const violationSchema = z.object({
 |---|---|---|
 | Admin access | `15m` | `{ adminId, role, type: "access" }` |
 | Admin refresh | `8h` | `{ adminId, role, type: "refresh" }` |
-| Candidate access | `15m` | `{ interviewId, empId, type: "access" }` |
-| Candidate refresh | `4h` | `{ interviewId, empId, type: "refresh" }` |
+| Candidate access | `15m` | `{ interviewId, email, type: "access" }` |
+| Candidate refresh | `4h` | `{ interviewId, email, type: "refresh" }` |
 
 All four verifiers **hard-check the `type` claim** after verifying the
 signature. Both token kinds share one secret, so the `type` claim is the only
@@ -1407,13 +1415,13 @@ Attaches nothing.
 interview; rejects if missing or status is neither `PENDING` nor `ACTIVE`.
 **This is the server-side half of the one-attempt guard** — the moment an
 interview becomes COMPLETED/NO_SHOW/EXPIRED, an existing token stops working.
-Attaches `req.candidateSession = { interviewId, empId }`. The raw `interviewId`
+Attaches `req.candidateSession = { interviewId, email }`. The raw `interviewId`
 is **never** exposed to the candidate frontend — it lives only in the httpOnly
 cookie.
 
 **Rate limiting.** Both login routes: 10 **failed** attempts per 15 minutes,
 `skipSuccessfulRequests: true`, `standardHeaders: "draft-7"`, `legacyHeaders:
-false`. Admin keyed by IP; candidate keyed by `` `${ip}:${empId.toUpperCase()}` ``.
+false`. Admin keyed by IP; candidate keyed by `` `${ip}:${email.trim().toLowerCase()}` ``.
 
 ---
 
@@ -1446,7 +1454,7 @@ issue message, with the stated fallback when none is available.
 | 401 | `"Session expired — please log in again."` | either `/refresh` — missing/invalid/wrong-type token, account gone/inactive, or hash mismatch (reuse) |
 | 401 | `"This interview session is no longer active."` | candidate `/refresh`, and `requireCandidate` |
 | 401 | `"Current password is incorrect."` | `PATCH /admin/auth/me` |
-| 401 | `"Employee ID or access key is incorrect, or this interview is no longer available."` | candidate login (covers empId containing `/`, no candidate, no matching key) |
+| 401 | `"Email or access key is incorrect, or this interview is no longer available."` | candidate login (covers malformed email, no candidate, no matching key) |
 | 401 | `"Not authenticated"` | `requireAdmin`, `requireCandidate`, `GET /interview/auth/me` |
 | 403 | `` `Only ${role} can access this.` `` | `requireRole` |
 | 404 | `"Account not found."` | `PATCH /admin/auth/me` |
@@ -1576,16 +1584,16 @@ its count is non-zero — failed evaluations (err) · integrity flags (err) ·
 no-shows (warn) · JDs without a question bank (warn) · reports still scoring
 (warn). Empty state states all five are clear.
 
-"Recently completed": top 5 by `completedAt` desc — Candidate (name + empId) ·
+"Recently completed": top 5 by `completedAt` desc — Candidate (name + email) ·
 Cluster · Score (/10) · Category · Completed.
 
 ### 11.3 Candidates
 
 Three tabs: **All Candidates** · **Bulk upload (Excel)** · **Add one candidate**.
 
-**List tab.** Search (empId/name/email, client-side, resets paging) + Refresh.
-Pagination at `PREVIEW_PAGE_SIZE = 100`. Columns: Emp ID · Name · Email ·
-Cluster · JD Reference (resolved to title) · Tier · Batch (ISO rendered as local
+**List tab.** Search (name/email/reference ID, client-side, resets paging) +
+Refresh. Pagination at `PREVIEW_PAGE_SIZE = 100`. Columns: Name · Email ·
+Reference ID · Cluster · JD Reference (resolved to title) · Tier · Batch (ISO rendered as local
 date+time) · Status · actions. Status pills: PENDING warn, ACTIVE ok, COMPLETED
 ok, NO_SHOW err, EXPIRED err, plus a `×N` pill when `interviewCount > 1`.
 
@@ -1602,11 +1610,13 @@ that previous attempts stay untouched.
 
 **Bulk upload tab.** A three-step stepper (Upload → Preview & Validate →
 Import). Drag-and-drop accepting `.xlsx,.xls`, with required-column pills
-`Emp ID, Emp Name, Emp Email, Skill Cluster, Tier, JD Reference`.
+`Name, Email, Skill Cluster, Tier, JD Reference` and an optional-column pill
+`Reference ID`. Headers from the earlier template (`Emp Name`, `Emp Email`,
+`Emp ID`) are accepted as aliases for Name, Email and Reference ID.
 
-Validation is entirely client-side. Row **errors**: "Emp ID is required",
-"Emp Name is required", "Emp Email is required", "Emp Email doesn't look valid",
-"Skill Cluster is required", `Duplicate Emp ID — already used on row N`. Row
+Validation is entirely client-side. Emails are lowercased before checking. Row
+**errors**: "Name is required", "Email is required", "Email doesn't look valid",
+"Skill Cluster is required", `Duplicate email — already used on row N`. Row
 **warnings**: near-duplicate cluster spelling, "Tier missing — will default to
 tier 4", "No JD Reference — candidate will be cluster-only, no JD-specific
 questions", and a near-match JD title caution.
@@ -1691,11 +1701,11 @@ Difficulty · per-row Delete. "Load more" appears when a cursor exists.
 
 **Issued-keys banner** (above everything after any schedule/resend, dismissible):
 "Shown once — the server only stores a hash, never the raw key." One mono line
-per key: `Name (empId): KEY` plus `✓ emailed` / `✕ email failed`, and a "Preview
+per key: `Name (email): KEY` plus `✓ emailed` / `✕ email failed`, and a "Preview
 email →" link when available. Buttons: **Export as Excel** and **Dismiss**.
 
 The export (filename `access-keys-YYYY-MM-DD.xlsx`) has exactly these columns:
-`Name, Employee ID, Email, Access Key, Scheduled At, Portal URL` (=
+`Name, Email, Access Key, Scheduled At, Portal URL` (=
 `${origin}/interview/login`), `Sent` — the last left blank for a mail-merge to
 fill.
 
@@ -1703,7 +1713,7 @@ Stat row: Scheduled · Awaiting start (warn) · No-shows (blocked) · Completed 
 
 **Scheduled tab.** Status filter + two sweep buttons ("Run no-show sweep now",
 "Run idle-interview sweep now" with an abandoned-tab tooltip), each toasting the
-result counts. Columns: Candidate (name; `empId · email`) · Cluster / JD (`JD:
+result counts. Columns: Candidate (name; `email · reference ID`) · Cluster / JD (`JD:
 <ref>` ok-pill or `cluster-only` warn-pill) · Scheduled (or an inline
 `datetime-local` with Confirm/Cancel while rescheduling) · Status (icon pills:
 PENDING `◷` warn, ACTIVE `●` ok, COMPLETED `✓` ok, NO_SHOW `✕` err, EXPIRED `⊘`
@@ -1743,7 +1753,7 @@ Major err.
 Polls `GET /results` **every 4s while any row has `reportStatus` PENDING or
 PROCESSING**, then stops.
 
-Filters: Search (name/empId) · Cluster · JD · Batch (labelled `Imported <date
+Filters: Search (name/email/reference ID) · Cluster · JD · Batch (labelled `Imported <date
 time>`, newest first) · a **Needs review only (N)** checkbox.
 
 Buttons: **Retry stuck reports** (toasts `Report sweep done: N checked, M
@@ -1760,7 +1770,7 @@ are **excluded entirely** (a timing artifact, not a real gap); level values
 `{ Not Awarded: 0, L1: 1, L2: 2, L3: 3 }`.
 
 **Main table, grouped by candidate.** A single-attempt candidate renders a normal
-row. A multi-attempt candidate renders a summary row (name + empId, then a
+row. A multi-attempt candidate renders a summary row (name + email, then a
 `colSpan={6}` cell reading `N interview attempts — expand to see each JD's
 result.` and a `Results (N)` / `Hide` toggle); expanding reveals attempt rows
 indented 28px, each showing the **JD title** in the first cell instead of the
@@ -1787,8 +1797,8 @@ before this question)`, reached-but-empty as italic `(no answer)`.
 
 **Excel export** (`results-export-YYYY-MM-DD.xlsx`, scoped to the current
 filter), three sheets:
-- **Results** — `Candidate, Emp ID, Cluster, JD, Status, Score (/10), Category, Integrity Score, Integrity Verdict, Violations, Completed`
-- **Skill Scores** — one row per (candidate, skill): `Candidate, Emp ID, JD, Skill, Expected Level, Demonstrated Level, Met Expectation` (`Yes`/`No`/`—`)
+- **Results** — `Candidate, Email, Reference ID, Cluster, JD, Status, Score (/10), Category, Integrity Score, Integrity Verdict, Violations, Completed`
+- **Skill Scores** — one row per (candidate, skill): `Candidate, Email, JD, Skill, Expected Level, Demonstrated Level, Met Expectation` (`Yes`/`No`/`—`)
 - **Skill Gap Summary** — `JD, Skill, Expected Level, % Met, Met / Total, Avg Demonstrated (0-3)`
 
 ### 11.9 API Usage
@@ -1906,7 +1916,7 @@ provider → shell, with children `login`, `instructions` (`RequireProfile`),
 four pages lazy-loaded (so MediaPipe and the editor only load when needed).
 
 Header: brand block ("GapVise AI" / "AI Skills Assessment"), then
-`<strong>{empName}</strong> · {empId}` when a profile exists, plus a theme
+`<strong>{name}</strong> · {email}` when a profile exists, plus a theme
 toggle persisted to `localStorage["cand-theme"]`. **Default theme is dark**
 (light only if the OS prefers light).
 
@@ -1934,10 +1944,10 @@ would be rejected as token reuse and force a spurious mid-interview logout.
 
 ### 12.1 Login
 
-A centered card: lock badge, `GapVise AI Assessment`, "Enter the Employee ID and
-access key from your invitation email." Two fields, both monospace with
-`letter-spacing: 1px`: Employee ID (placeholder `e.g. EMP001234`, autofocus) and
-Access Key (placeholder `Your 12-character key`). Submit reads `Continue →` /
+A centered card: lock badge, `GapVise AI Assessment`, "Enter your email address
+and the access key from your invitation email." Two fields: Email (`type="email"`,
+placeholder `you@example.com`, autofocus) and Access Key (monospace with
+`letter-spacing: 1px`, placeholder `Your 12-character key`). Submit reads `Continue →` /
 `Checking…`. On success → `/interview/instructions`.
 
 ### 12.2 Instructions
@@ -2077,7 +2087,7 @@ disruptive than a quiet banner.
   button on open and Tab is trapped within the overlay. There is deliberately
   **no Escape handler** — dismissing silently would defeat the point.
 
-**Duplicate-tab hard block** — scoped by empId (the frontend never has the
+**Duplicate-tab hard block** — scoped by the candidate's email (the frontend never has the
 interviewId). The duplicate tab renders a full-screen non-dismissible `zIndex
 10000` card: "Already Open Elsewhere" / "This interview is already open in
 another tab or window. Please continue there — working in two tabs at once can
@@ -2207,7 +2217,9 @@ built product:
 - **`questionId` idempotency guard** on `/answer` (§7.9).
 - **Schedule/reschedule guarded** to `PENDING`/`NO_SHOW` so a finished interview
   can't be reopened (§6.4).
-- **Candidate IDs stored uppercase** to match login (§6.3); access keys
+- **Candidates are identified by email** (§3.7, §4, §6.3): the email is the
+  candidate record ID and the login identifier, replacing the employee ID; an
+  optional Reference ID keeps the customer's own ID. Access keys are
   normalized to uppercase at login (§7.8).
 - **Login moves the interview to `ACTIVE`** (§7.8).
 - Candidate-app header reads "AI Skills Assessment" (§12.0).

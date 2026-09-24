@@ -13,7 +13,7 @@ const bank = (section: "definitions" | "scenarios" | "coding", skillFor: (i: num
     id: `${section}-${difficulty}-${i}`, section, difficulty, prompt: `${section} ${difficulty} ${i}`, skill: skillFor(i),
   })));
 
-const profile = (hasCoding: boolean) => ({ empId: "E1", empName: "Test", cluster: "Java", jdRef: "jd", hasCoding });
+const profile = (hasCoding: boolean) => ({ email: "test@example.com", name: "Test", refId: null, cluster: "Java", jdRef: "jd", hasCoding });
 
 function plan(hasCoding: boolean): SectionPlan[] {
   return sectionsFor(hasCoding).map((s) => drawSection(s, bank(s), hasCoding ? SECTION_TARGETS[s].coding : SECTION_TARGETS[s].nonCoding));

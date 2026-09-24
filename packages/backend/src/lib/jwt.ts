@@ -14,7 +14,7 @@ export const CANDIDATE_REFRESH_TTL = "4h";
 type TokenType = "access" | "refresh";
 
 export interface AdminTokenPayload { adminId: string; role: AdminRole; type: TokenType }
-export interface CandidateTokenPayload { interviewId: string; empId: string; type: TokenType }
+export interface CandidateTokenPayload { interviewId: string; email: string; type: TokenType }
 
 function sign(payload: object, expiresIn: "15m" | "8h" | "4h"): string {
   // jwtid makes two tokens minted in the same second distinct, so a rotated
@@ -40,12 +40,12 @@ export const signAdminAccess = (adminId: string, role: AdminRole) =>
   sign({ adminId, role, type: "access" }, ADMIN_ACCESS_TTL);
 export const signAdminRefresh = (adminId: string, role: AdminRole) =>
   sign({ adminId, role, type: "refresh" }, ADMIN_REFRESH_TTL);
-export const signCandidateAccess = (interviewId: string, empId: string) =>
-  sign({ interviewId, empId, type: "access" }, CANDIDATE_ACCESS_TTL);
-export const signCandidateRefresh = (interviewId: string, empId: string) =>
-  sign({ interviewId, empId, type: "refresh" }, CANDIDATE_REFRESH_TTL);
+export const signCandidateAccess = (interviewId: string, email: string) =>
+  sign({ interviewId, email, type: "access" }, CANDIDATE_ACCESS_TTL);
+export const signCandidateRefresh = (interviewId: string, email: string) =>
+  sign({ interviewId, email, type: "refresh" }, CANDIDATE_REFRESH_TTL);
 
 export const verifyAdminAccess = (t: string | undefined) => verify<AdminTokenPayload>(t, "access", ["adminId", "role"]);
 export const verifyAdminRefresh = (t: string | undefined) => verify<AdminTokenPayload>(t, "refresh", ["adminId", "role"]);
-export const verifyCandidateAccess = (t: string | undefined) => verify<CandidateTokenPayload>(t, "access", ["interviewId", "empId"]);
-export const verifyCandidateRefresh = (t: string | undefined) => verify<CandidateTokenPayload>(t, "refresh", ["interviewId", "empId"]);
+export const verifyCandidateAccess = (t: string | undefined) => verify<CandidateTokenPayload>(t, "access", ["interviewId", "email"]);
+export const verifyCandidateRefresh = (t: string | undefined) => verify<CandidateTokenPayload>(t, "refresh", ["interviewId", "email"]);

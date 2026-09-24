@@ -45,7 +45,7 @@ const serverNow = () => FieldValue.serverTimestamp() as unknown as Timestamp;
  * GET / and /heartbeat: returns the session, first applying reactive expiry (skip the
  * section, or complete the interview if it was the last one).
  */
-async function readWithExpiry(interviewId: string, empId: string, touchHeartbeat: boolean) {
+async function readWithExpiry(interviewId: string, email: string, touchHeartbeat: boolean) {
   const sessionRef = sessionDoc(interviewId);
   const interviewRef = interviewsCol().doc(interviewId);
 
@@ -59,7 +59,7 @@ async function readWithExpiry(interviewId: string, empId: string, touchHeartbeat
     if (isExpired(state)) {
       next = skipSection(state);
       tx.update(sessionRef, { data: next, version: FieldValue.increment(1), updatedAt: serverNow() });
-      if (next.done) completeInTransaction(tx, interviewRef, empId);
+      if (next.done) completeInTransaction(tx, interviewRef, email);
     }
     if (touchHeartbeat && !state.done) tx.update(interviewRef, { lastHeartbeatAt: serverNow() });
     return { state: next, startedAt, completedNow: !state.done && next.done };
@@ -70,21 +70,21 @@ async function readWithExpiry(interviewId: string, empId: string, touchHeartbeat
 }
 
 router.post("/start", async (req, res) => {
-  const { interviewId, empId } = req.candidateSession!;
+  const { interviewId, email } = req.candidateSession!;
   const sessionRef = sessionDoc(interviewId);
   const interviewRef = interviewsCol().doc(interviewId);
 
   // Idempotent: an existing session is returned, never reset.
   if ((await sessionRef.get()).exists) {
-    const o = await readWithExpiry(interviewId, empId, false);
+    const o = await readWithExpiry(interviewId, email, false);
     return sendSession(res, 200, o.state, o.startedAt, o.completedNow);
   }
 
-  const [candidateSnap, interviewSnap] = await Promise.all([candidatesCol().doc(empId).get(), interviewRef.get()]);
+  const [candidateSnap, interviewSnap] = await Promise.all([candidatesCol().doc(email).get(), interviewRef.get()]);
   const candidate = candidateSnap.data();
   if (!candidate || !interviewSnap.exists) return res.status(404).json({ error: "Candidate not found." });
 
-  const profile = await buildCandidateProfile(empId, candidate, interviewSnap.data()!);
+  const profile = await buildCandidateProfile(email, candidate, interviewSnap.data()!);
   let state: InterviewState;
   try {
     state = initialState(profile, await buildPlan(profile));
@@ -106,7 +106,7 @@ router.post("/start", async (req, res) => {
   });
 
   if (!created) {
-    const o = await readWithExpiry(interviewId, empId, false);
+    const o = await readWithExpiry(interviewId, email, false);
     return sendSession(res, 200, o.state, o.startedAt, o.completedNow);
   }
   const startedAt = toMillis((await interviewRef.get()).data()?.startedAt);
@@ -114,14 +114,14 @@ router.post("/start", async (req, res) => {
 });
 
 router.get("/", async (req, res) => {
-  const { interviewId, empId } = req.candidateSession!;
-  const o = await readWithExpiry(interviewId, empId, false);
+  const { interviewId, email } = req.candidateSession!;
+  const o = await readWithExpiry(interviewId, email, false);
   sendSession(res, 200, o.state, o.startedAt, o.completedNow);
 });
 
 router.post("/heartbeat", async (req, res) => {
-  const { interviewId, empId } = req.candidateSession!;
-  const o = await readWithExpiry(interviewId, empId, true);
+  const { interviewId, email } = req.candidateSession!;
+  const o = await readWithExpiry(interviewId, email, true);
   sendSession(res, 200, o.state, o.startedAt, o.completedNow);
 });
 
@@ -136,7 +136,7 @@ const answerSchema = z.object({
 type Mutation = "answer" | "skip";
 
 async function mutate(req: Request, kind: Mutation, body?: z.infer<typeof answerSchema>) {
-  const { interviewId, empId } = req.candidateSession!;
+  const { interviewId, email } = req.candidateSession!;
   const sessionRef = sessionDoc(interviewId);
   const interviewRef = interviewsCol().doc(interviewId);
 
@@ -171,7 +171,7 @@ async function mutate(req: Request, kind: Mutation, body?: z.infer<typeof answer
     }
 
     tx.update(sessionRef, { data: next, version: FieldValue.increment(1), updatedAt: serverNow() });
-    if (next.done) completeInTransaction(tx, interviewRef, empId);
+    if (next.done) completeInTransaction(tx, interviewRef, email);
     return { state: next, startedAt, autoCompleted: expired && next.done, completedNow: next.done };
   });
 

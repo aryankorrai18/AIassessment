@@ -35,19 +35,17 @@ export async function runNoShowSweep() {
       if (now - since < env.noShowReminderIntervalMs) continue;
 
       const candidate = (await candidatesCol().doc(interview.candidateId).get()).data();
-      const name = candidate?.empName ?? interview.candidateId;
+      const name = candidate?.name ?? interview.candidateId;
 
       if (reminderCount < MAX_REMINDERS) {
-        if (candidate?.empEmail) {
-          await sendEmail(reminderEmail({ to: candidate.empEmail, name, empId: interview.candidateId, scheduledAt: scheduledAt.toDate(), reminderNumber: reminderCount + 1 }));
-        }
+        await sendEmail(reminderEmail({ to: interview.candidateId, name, scheduledAt: scheduledAt.toDate(), reminderNumber: reminderCount + 1 }));
         await d.ref.update({ "schedule.reminderCount": reminderCount + 1, "schedule.lastReminderAt": Timestamp.now() });
         result.reminded++;
       } else {
         await d.ref.update({ status: "NO_SHOW", "schedule.noShow": true, "schedule.escalatedAt": Timestamp.now() });
         const masters = await adminUsersCol().where("role", "==", "MASTER_ADMIN").where("isActive", "==", true).get();
         await Promise.all(masters.docs.map((m) => sendEmail(noShowEscalationEmail({
-          to: m.data().email, candidateName: name, empId: interview.candidateId, empEmail: candidate?.empEmail ?? "", scheduledAt: scheduledAt.toDate(),
+          to: m.data().email, candidateName: name, candidateEmail: interview.candidateId, refId: candidate?.refId ?? null, scheduledAt: scheduledAt.toDate(),
         }))));
         result.escalated++;
       }

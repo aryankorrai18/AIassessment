@@ -38,8 +38,8 @@ export default function Overview() {
   const latestByCandidate = new Map<string, ResultRow>();
   for (const r of data.results) {
     if (r.status !== "COMPLETED" || r.score === null) continue;
-    const prev = latestByCandidate.get(r.empId);
-    if (!prev || (r.completedAt ?? 0) > (prev.completedAt ?? 0)) latestByCandidate.set(r.empId, r);
+    const prev = latestByCandidate.get(r.email);
+    if (!prev || (r.completedAt ?? 0) > (prev.completedAt ?? 0)) latestByCandidate.set(r.email, r);
   }
   const scored = [...latestByCandidate.values()];
   const avg = scored.length ? (scored.reduce((s, r) => s + r.score!, 0) / scored.length / 10).toFixed(1) : "—";
@@ -98,7 +98,7 @@ export default function Overview() {
               <tbody>
                 {recent.map((r) => (
                   <tr key={r.interviewId}>
-                    <td>{r.candidateName}<div className="sub-line">{r.empId}</div></td>
+                    <td>{r.candidateName}<div className="sub-line">{r.email}</div></td>
                     <td>{r.cluster}</td>
                     <td className="tabular">{r.reportStatus === "COMPLETED" ? score10(r.score) : "Scoring…"}</td>
                     <td><CategoryPill category={r.category} /></td>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type
 import { IconUpload } from "../components/Icons";
 import { useToast } from "../components/Toast";
 import { api, errorMessage } from "../lib/api";
-import { REQUIRED_COLUMNS, rowFromSheet, validateRows, type ImportRow, type ValidatedRow } from "../lib/candidateValidation";
+import { missingColumns, OPTIONAL_COLUMNS, REQUIRED_COLUMNS, rowFromSheet, validateRows, type ImportRow, type ValidatedRow } from "../lib/candidateValidation";
 import { readFirstSheet } from "../lib/excel";
 import { fmtDateTime } from "../lib/format";
 import type { CandidateRow, JdListRow } from "../lib/types";
@@ -11,7 +11,7 @@ import { EmptyRow, Modal, StatusPill } from "./shared";
 const PREVIEW_PAGE_SIZE = 100;
 const IMPORT_CHUNK_SIZE = 200;
 
-type ImportResponse = { imported: number; results: { rowIndex: number; empId: string; status: "imported" | "skipped"; error?: string }[] };
+type ImportResponse = { imported: number; results: { rowIndex: number; email: string; status: "imported" | "skipped"; error?: string }[] };
 type Tab = "list" | "bulk" | "single";
 
 export default function Candidates() {
@@ -64,7 +64,7 @@ function CandidateList({ candidates, jds, reload }: { candidates: CandidateRow[]
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (candidates ?? []).filter((c) => !q || c.empId.toLowerCase().includes(q) || c.empName.toLowerCase().includes(q) || c.empEmail.toLowerCase().includes(q));
+    return (candidates ?? []).filter((c) => !q || c.email.includes(q) || c.name.toLowerCase().includes(q) || (c.refId ?? "").toLowerCase().includes(q));
   }, [candidates, search]);
   const pageRows = filtered.slice(page * PREVIEW_PAGE_SIZE, (page + 1) * PREVIEW_PAGE_SIZE);
   const pages = Math.max(1, Math.ceil(filtered.length / PREVIEW_PAGE_SIZE));
@@ -72,14 +72,14 @@ function CandidateList({ candidates, jds, reload }: { candidates: CandidateRow[]
   const remove = async (c: CandidateRow, cascade: boolean) => {
     const attempts = c.interviewCount;
     const message = cascade
-      ? `Delete ${c.empName} (${c.empId}) AND all ${attempts} interview attempt(s), including transcripts, scores and reports?\n\nThis cannot be undone.`
+      ? `Delete ${c.name} (${c.email}) AND all ${attempts} interview attempt(s), including transcripts, scores and reports?\n\nThis cannot be undone.`
       : c.interviewStatus === "COMPLETED"
-        ? `Delete candidate ${c.empName} (${c.empId})?\n\nTheir completed interview, score and report history are NOT deleted and stay visible in Results.`
-        : `Delete candidate ${c.empName} (${c.empId})? Their interview record is kept.`;
+        ? `Delete candidate ${c.name} (${c.email})?\n\nTheir completed interview, score and report history are NOT deleted and stay visible in Results.`
+        : `Delete candidate ${c.name} (${c.email})? Their interview record is kept.`;
     if (!window.confirm(message)) return;
     try {
-      const r = await api<{ deletedInterviewCount: number }>(`/candidates/${encodeURIComponent(c.empId)}${cascade ? "?cascade=true" : ""}`, { method: "DELETE" });
-      toast(cascade ? `Deleted ${c.empId} and ${r.deletedInterviewCount} interview record(s).` : `Deleted ${c.empId}.`);
+      const r = await api<{ deletedInterviewCount: number }>(`/candidates/${encodeURIComponent(c.email)}${cascade ? "?cascade=true" : ""}`, { method: "DELETE" });
+      toast(cascade ? `Deleted ${c.email} and ${r.deletedInterviewCount} interview record(s).` : `Deleted ${c.email}.`);
       await reload();
     } catch (err) {
       toast(errorMessage(err), "err");
@@ -89,7 +89,7 @@ function CandidateList({ candidates, jds, reload }: { candidates: CandidateRow[]
   return (
     <div className="card">
       <div className="toolbar">
-        <input type="search" placeholder="Search Emp ID, name or email" aria-label="Search candidates" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
+        <input type="search" placeholder="Search name, email or reference ID" aria-label="Search candidates" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
         <button className="btn secondary" onClick={() => void reload()}>Refresh</button>
         <span className="spacer" />
         <span className="muted">{filtered.length} candidate(s)</span>
@@ -97,7 +97,7 @@ function CandidateList({ candidates, jds, reload }: { candidates: CandidateRow[]
       <div className="table-scroll">
         <table className="data-table">
           <thead>
-            <tr><th>Emp ID</th><th>Name</th><th>Email</th><th>Cluster</th><th>JD Reference</th><th>Tier</th><th>Batch</th><th>Status</th><th /></tr>
+            <tr><th>Name</th><th>Email</th><th>Reference ID</th><th>Cluster</th><th>JD Reference</th><th>Tier</th><th>Batch</th><th>Status</th><th /></tr>
           </thead>
           <tbody>
             {candidates === null && <EmptyRow colSpan={9}>Loading…</EmptyRow>}
@@ -105,10 +105,10 @@ function CandidateList({ candidates, jds, reload }: { candidates: CandidateRow[]
             {pageRows.map((c) => {
               const busy = c.interviewStatus === "ACTIVE" || c.interviewStatus === "PENDING";
               return (
-                <tr key={c.empId}>
-                  <td className="mono">{c.empId}</td>
-                  <td>{c.empName}</td>
-                  <td>{c.empEmail}</td>
+                <tr key={c.email}>
+                  <td>{c.name}</td>
+                  <td>{c.email}</td>
+                  <td className="mono">{c.refId ?? <span className="faint">—</span>}</td>
                   <td>{c.skillCluster}</td>
                   <td>{c.jdRef ? titleByRef.get(c.jdRef) ?? c.jdRef : <span className="faint">—</span>}</td>
                   <td>{c.tier}</td>
@@ -155,7 +155,7 @@ function ReassessModal({ candidate, jds, onClose, onDone }: { candidate: Candida
     setBusy(true);
     setError(null);
     try {
-      const r = await api<{ jdTitle: string }>(`/candidates/${encodeURIComponent(candidate.empId)}/reassess`, { body: { jdReference } });
+      const r = await api<{ jdTitle: string }>(`/candidates/${encodeURIComponent(candidate.email)}/reassess`, { body: { jdReference } });
       toast(`Re-assessment against "${r.jdTitle}" created — schedule it from Interview Schedule.`);
       await onDone();
       onClose();
@@ -167,7 +167,7 @@ function ReassessModal({ candidate, jds, onClose, onDone }: { candidate: Candida
   };
 
   return (
-    <Modal title={`Schedule another interview — ${candidate.empName}`} onClose={onClose} locked={busy}>
+    <Modal title={`Schedule another interview — ${candidate.name}`} onClose={onClose} locked={busy}>
       <form onSubmit={submit}>
         <p className="muted">Creates a new interview attempt against a JD. Previous attempts, scores and reports stay untouched.</p>
         <div className="form-field">
@@ -226,8 +226,7 @@ function BulkUpload({ jds, onImported }: { jds: JdListRow[]; onImported: () => P
     try {
       const sheet = await readFirstSheet(file);
       if (sheet.length === 0) return setError("That sheet has no data rows.");
-      const headers = Object.keys(sheet[0].values).map((h) => h.toLowerCase());
-      const missing = REQUIRED_COLUMNS.filter((c) => !headers.includes(c.toLowerCase()));
+      const missing = missingColumns(Object.keys(sheet[0].values));
       if (missing.length) return setError(`Missing required column(s): ${missing.join(", ")}.`);
       const parsed = sheet.map((r) => rowFromSheet(r.rowNumber, r.values));
       setRows(validateRows(parsed, jds.map((j) => j.title), jds.map((j) => j.skillCluster)));
@@ -293,7 +292,11 @@ function BulkUpload({ jds, onImported }: { jds: JdListRow[]; onImported: () => P
             <p><strong>Drop an Excel file here</strong> or click to choose one (.xlsx, .xls)</p>
             <input ref={inputRef} type="file" accept=".xlsx,.xls" hidden onChange={(e) => void handleFile(e.target.files?.[0])} />
           </div>
-          <p className="form-hint" style={{ marginTop: 12 }}>Required columns: {REQUIRED_COLUMNS.map((c) => <span key={c} className="pill">{c}</span>)}</p>
+          <p className="form-hint" style={{ marginTop: 12 }}>
+            Required columns: {REQUIRED_COLUMNS.map((c) => <span key={c} className="pill">{c}</span>)}
+            {" "}Optional: {OPTIONAL_COLUMNS.map((c) => <span key={c} className="pill">{c}</span>)}
+          </p>
+          <p className="form-hint">Each candidate is identified by their email, which they also use to sign in. Reference ID is your own ID for them (e.g. an employee or applicant ID).</p>
         </>
       )}
 
@@ -320,7 +323,7 @@ function BulkUpload({ jds, onImported }: { jds: JdListRow[]; onImported: () => P
                   <strong>Done.</strong> Imported {outcome.imported}; skipped {outcome.skipped.length}.
                   {outcome.skipped.length > 0 && (
                     <ul className="list-plain" style={{ marginTop: 6 }}>
-                      {outcome.skipped.slice(0, 20).map((s) => <li key={`${s.rowIndex}-${s.empId}`}>Row {s.rowIndex} ({s.empId}): {s.error}</li>)}
+                      {outcome.skipped.slice(0, 20).map((s) => <li key={`${s.rowIndex}-${s.email}`}>Row {s.rowIndex} ({s.email}): {s.error}</li>)}
                     </ul>
                   )}
                   <div style={{ marginTop: 10 }}><button className="btn secondary small" onClick={reset}>Import another file</button></div>
@@ -334,7 +337,7 @@ function BulkUpload({ jds, onImported }: { jds: JdListRow[]; onImported: () => P
           )}
           <div className="table-scroll" style={{ maxHeight: 520 }}>
             <table className="data-table">
-              <thead><tr><th>Row</th><th>Status</th><th>Emp ID</th><th>Name</th><th>Email</th><th>Cluster</th><th>Tier</th><th>JD Reference</th></tr></thead>
+              <thead><tr><th>Row</th><th>Status</th><th>Name</th><th>Email</th><th>Reference ID</th><th>Cluster</th><th>Tier</th><th>JD Reference</th></tr></thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.rowIndex} className={r.errors.length ? "row-error" : r.warnings.length ? "row-warning" : undefined}>
@@ -345,9 +348,9 @@ function BulkUpload({ jds, onImported }: { jds: JdListRow[]; onImported: () => P
                         <ul className="list-plain sub-line">{[...r.errors, ...r.warnings].map((m) => <li key={m}>{m}</li>)}</ul>
                       )}
                     </td>
-                    <td className="mono">{r.empId}</td>
-                    <td>{r.empName}</td>
-                    <td>{r.empEmail}</td>
+                    <td>{r.name}</td>
+                    <td>{r.email}</td>
+                    <td className="mono">{r.refId || <span className="faint">—</span>}</td>
                     <td>{r.skillCluster}</td>
                     <td>{r.tier || <span className="faint">—</span>}</td>
                     <td>{r.jdReference || <span className="faint">—</span>}</td>
@@ -366,7 +369,7 @@ function BulkUpload({ jds, onImported }: { jds: JdListRow[]; onImported: () => P
 
 function AddOne({ jds, onImported }: { jds: JdListRow[]; onImported: () => Promise<void> }) {
   const toast = useToast();
-  const empty = { empId: "", empName: "", empEmail: "", skillCluster: "", tier: "4", jdReference: "" };
+  const empty = { name: "", email: "", refId: "", skillCluster: "", tier: "4", jdReference: "" };
   const [form, setForm] = useState(empty);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -376,6 +379,7 @@ function AddOne({ jds, onImported }: { jds: JdListRow[]; onImported: () => Promi
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const row: ImportRow = { rowIndex: 1, ...Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v.trim()])) } as ImportRow;
+    row.email = row.email.toLowerCase();
     const [validated] = validateRows([row], jds.map((j) => j.title), clusters);
     setErrors(validated.errors);
     if (validated.errors.length) return;
@@ -387,7 +391,7 @@ function AddOne({ jds, onImported }: { jds: JdListRow[]; onImported: () => Promi
       if (res?.status === "skipped") {
         setErrors([res.error ?? "Skipped."]);
       } else {
-        toast(`Added ${res.empId}.${validated.warnings.length ? ` Note: ${validated.warnings[0]}` : ""}`);
+        toast(`Added ${res.email}.${validated.warnings.length ? ` Note: ${validated.warnings[0]}` : ""}`);
         setForm(empty);
         await onImported();
       }
@@ -401,9 +405,16 @@ function AddOne({ jds, onImported }: { jds: JdListRow[]; onImported: () => Promi
   return (
     <form className="card" onSubmit={submit} style={{ maxWidth: 760 }}>
       <div className="form-grid">
-        <div className="form-field"><label htmlFor="c-id">Emp ID</label><input id="c-id" type="text" value={form.empId} onChange={set("empId")} /></div>
-        <div className="form-field"><label htmlFor="c-name">Emp Name</label><input id="c-name" type="text" value={form.empName} onChange={set("empName")} /></div>
-        <div className="form-field"><label htmlFor="c-email">Emp Email</label><input id="c-email" type="text" value={form.empEmail} onChange={set("empEmail")} /></div>
+        <div className="form-field"><label htmlFor="c-name">Name</label><input id="c-name" type="text" value={form.name} onChange={set("name")} /></div>
+        <div className="form-field">
+          <label htmlFor="c-email">Email</label>
+          <input id="c-email" type="email" value={form.email} onChange={set("email")} />
+          <span className="form-hint">Identifies the candidate; they sign in with it.</span>
+        </div>
+        <div className="form-field">
+          <label htmlFor="c-ref">Reference ID <span className="faint">(optional)</span></label>
+          <input id="c-ref" type="text" value={form.refId} onChange={set("refId")} placeholder="e.g. employee or applicant ID" />
+        </div>
         <div className="form-field">
           <label htmlFor="c-cluster">Skill Cluster</label>
           <input id="c-cluster" type="text" list="c-clusters" value={form.skillCluster} onChange={set("skillCluster")} />

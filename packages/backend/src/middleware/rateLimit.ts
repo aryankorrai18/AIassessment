@@ -1,4 +1,5 @@
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
+import { normalizeEmail } from "../lib/validation";
 
 const LOGIN_LIMIT_OPTIONS = {
   windowMs: 15 * 60 * 1000,
@@ -15,8 +16,8 @@ export const adminLoginLimiter = rateLimit(LOGIN_LIMIT_OPTIONS);
 export const candidateLoginLimiter = rateLimit({
   ...LOGIN_LIMIT_OPTIONS,
   keyGenerator: (req) => {
-    const empId = typeof req.body?.empId === "string" ? req.body.empId.trim().toUpperCase() : "";
-    return `${ipKeyGenerator(req.ip ?? "")}:${empId}`;
+    const email = typeof req.body?.email === "string" ? normalizeEmail(req.body.email) : "";
+    return `${ipKeyGenerator(req.ip ?? "")}:${email}`;
   },
 });
 

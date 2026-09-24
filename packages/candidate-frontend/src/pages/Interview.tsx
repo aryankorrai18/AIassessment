@@ -44,7 +44,7 @@ const fmtClock = (ms: number) => {
 export default function Interview() {
   const { profile, interview } = useCandidate();
   const navigate = useNavigate();
-  const duplicate = useDuplicateTabGuard(profile?.empId);
+  const duplicate = useDuplicateTabGuard(profile?.email);
 
   useEffect(() => {
     if (!interview) navigate("/interview/login", { replace: true });

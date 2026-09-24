@@ -29,12 +29,12 @@ export default function Schedule() {
   }, [toast]);
   useEffect(() => void load(), [load]);
 
-  const addIssued = (keys: IssuedKey[]) => setIssued((prev) => [...keys, ...prev.filter((p) => !keys.some((k) => k.empId === p.empId))]);
+  const addIssued = (keys: IssuedKey[]) => setIssued((prev) => [...keys, ...prev.filter((p) => !keys.some((k) => k.email === p.email))]);
 
   const exportKeys = () => downloadWorkbook(`access-keys-${ymd()}.xlsx`, [{
     name: "Access Keys",
-    columns: ["Name", "Employee ID", "Email", "Access Key", "Scheduled At", "Portal URL", "Sent"],
-    rows: issued.map((k) => [k.name, k.empId, k.empEmail, k.key, fmtDateTime(k.scheduledAt), `${PORTAL_ORIGIN}/interview/login`, ""]),
+    columns: ["Name", "Email", "Access Key", "Scheduled At", "Portal URL", "Sent"],
+    rows: issued.map((k) => [k.name, k.email, k.key, fmtDateTime(k.scheduledAt), `${PORTAL_ORIGIN}/interview/login`, ""]),
   }]);
 
   const count = (st: InterviewStatus) => (scheduled ?? []).filter((s) => s.status === st).length;
@@ -53,8 +53,8 @@ export default function Schedule() {
           <strong>Shown once — the server only stores a hash, never the raw key.</strong>
           <div style={{ margin: "10px 0", display: "grid", gap: 4 }}>
             {issued.map((k) => (
-              <div key={k.empId} className="mono">
-                {k.name} ({k.empId}): <strong>{k.key}</strong>{"  "}
+              <div key={k.email} className="mono">
+                {k.name} ({k.email}): <strong>{k.key}</strong>{"  "}
                 {k.emailSent ? <span className="pill ok">✓ emailed</span> : <span className="pill err">✕ email failed</span>}
                 {k.emailPreviewUrl && <> <a href={k.emailPreviewUrl} target="_blank" rel="noreferrer">Preview email →</a></>}
               </div>
@@ -109,11 +109,11 @@ function ScheduledTab({ rows, reload, onIssued }: { rows: ScheduledRow[] | null;
   };
 
   const resend = async (r: ScheduledRow) => {
-    if (!window.confirm(`Send ${r.empName} a NEW access key? Their old key will stop working.`)) return;
+    if (!window.confirm(`Send ${r.name} a NEW access key? Their old key will stop working.`)) return;
     try {
       const res = await api<{ issued: IssuedKey[] }>(`/schedule/${r.interviewId}/resend`, { method: "POST" });
       onIssued(res.issued);
-      toast(`New key issued for ${r.empName}.`);
+      toast(`New key issued for ${r.name}.`);
     } catch (err) {
       toast(errorMessage(err), "err");
     }
@@ -153,7 +153,7 @@ function ScheduledTab({ rows, reload, onIssued }: { rows: ScheduledRow[] | null;
             {rows !== null && filtered.length === 0 && <EmptyRow colSpan={6}>No scheduled interviews{status ? " with that status" : ""}.</EmptyRow>}
             {filtered.map((r) => (
               <tr key={r.interviewId} className={r.status === "NO_SHOW" ? "row-error" : undefined}>
-                <td>{r.empName}<div className="sub-line">{r.empId} · {r.empEmail}</div></td>
+                <td>{r.name}<div className="sub-line">{r.email}{r.refId ? ` · ${r.refId}` : ""}</div></td>
                 <td>{r.cluster}<div style={{ marginTop: 3 }}>{r.jdRef ? <span className="pill ok">JD: {r.jdRef}</span> : <span className="pill warn">cluster-only</span>}</div></td>
                 <td>
                   {editing?.id === r.interviewId ? (
@@ -248,13 +248,13 @@ function ScheduleNewTab({ rows, onDone }: { rows: UnscheduledRow[] | null; onDon
               {rows?.length === 0 && <EmptyRow colSpan={5}>Everyone is scheduled. Import candidates or add a re-assessment to schedule more.</EmptyRow>}
               {rows?.map((r) => (
                 <tr key={r.interviewId}>
-                  <td><input type="checkbox" aria-label={`Select ${r.empName}`} checked={selected.has(r.interviewId)} onChange={() => {
+                  <td><input type="checkbox" aria-label={`Select ${r.name}`} checked={selected.has(r.interviewId)} onChange={() => {
                     const next = new Set(selected);
                     if (next.has(r.interviewId)) next.delete(r.interviewId); else next.add(r.interviewId);
                     setSelected(next);
                   }} /></td>
-                  <td>{r.empName}<div className="sub-line">{r.empId}</div></td>
-                  <td>{r.empEmail}</td>
+                  <td>{r.name}{r.refId && <div className="sub-line">{r.refId}</div>}</td>
+                  <td>{r.email}</td>
                   <td>{r.cluster}</td>
                   <td>{r.jdRef ?? <span className="pill warn">cluster-only</span>}</td>
                 </tr>

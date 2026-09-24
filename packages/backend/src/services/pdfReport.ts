@@ -5,7 +5,7 @@ import { VIOLATION_LABELS } from "./integrity";
 import type { ResultDetail } from "./results";
 
 export interface ReportHeader {
-  empId: string;
+  email: string;
   name: string;
   jdTitle: string;
   cluster: string;
@@ -23,7 +23,7 @@ const safePart = (s: string) => s.replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
 
 export function reportFilename(h: ReportHeader): string {
-  return `${[h.empId, h.name, h.jdTitle, ymd(h.completedAt ?? new Date())].map(safePart).join("_")}.pdf`;
+  return `${[h.name, h.email, h.jdTitle, ymd(h.completedAt ?? new Date())].map(safePart).join("_")}.pdf`;
 }
 
 const formatDateTime = (ms: number) =>
@@ -76,7 +76,7 @@ export function writeReportPdf(out: Writable, header: ReportHeader, detail: Resu
   // ---- Header ----
   doc.font("Helvetica-Bold").fontSize(20).fillColor(COLORS.text).text("GapVise AI — Candidate Assessment Report", MARGIN, MARGIN, { width });
   doc.moveDown(0.4).font("Helvetica").fontSize(10).fillColor(COLORS.muted);
-  doc.text(`Candidate: ${header.name} (${header.empId})`);
+  doc.text(`Candidate: ${header.name} (${header.email})`);
   doc.text(`Role: ${header.jdTitle}   ·   Cluster: ${header.cluster}`);
   doc.text(`Completed: ${header.completedAt ? formatDateTime(header.completedAt.getTime()) : "—"}`);
 

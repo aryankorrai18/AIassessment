@@ -21,7 +21,7 @@ liveMonitorRouter.get("/", async (_req, res) => {
     const candidate = (await candidatesCol().doc(iv.candidateId).get()).data();
     return {
       interviewId: d.id,
-      candidateName: candidate?.empName ?? iv.candidateId,
+      candidateName: candidate?.name ?? iv.candidateId,
       cluster: candidate?.skillCluster ?? "unknown",
       startedAt: toMillis(iv.startedAt),
       lastHeartbeatAt: toMillis(iv.lastHeartbeatAt),

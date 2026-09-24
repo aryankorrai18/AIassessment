@@ -49,7 +49,7 @@ export default function Results() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return all.filter((r) =>
-      (!q || r.candidateName.toLowerCase().includes(q) || r.empId.toLowerCase().includes(q)) &&
+      (!q || r.candidateName.toLowerCase().includes(q) || r.email.includes(q) || (r.refId ?? "").toLowerCase().includes(q)) &&
       (!cluster || r.cluster === cluster) && (!jd || r.jdTitle === jd) && (!batch || r.batchId === batch) && (!reviewOnly || r.needsReview));
   }, [all, search, cluster, jd, batch, reviewOnly]);
   const reviewCount = all.filter((r) => r.needsReview).length;
@@ -85,13 +85,13 @@ export default function Results() {
     return downloadWorkbook(`results-export-${ymd()}.xlsx`, [
       {
         name: "Results",
-        columns: ["Candidate", "Emp ID", "Cluster", "JD", "Status", "Score (/10)", "Category", "Integrity Score", "Integrity Verdict", "Violations", "Completed"],
-        rows: filtered.map((r) => [r.candidateName, r.empId, r.cluster, r.jdTitle ?? "", statusLabel(r), r.reportStatus === "COMPLETED" ? score10(r.score) : "", r.category ?? "", r.integrityScore, r.integrityVerdict, r.violationCount, fmtDateTime(r.completedAt)]),
+        columns: ["Candidate", "Email", "Reference ID", "Cluster", "JD", "Status", "Score (/10)", "Category", "Integrity Score", "Integrity Verdict", "Violations", "Completed"],
+        rows: filtered.map((r) => [r.candidateName, r.email, r.refId ?? "", r.cluster, r.jdTitle ?? "", statusLabel(r), r.reportStatus === "COMPLETED" ? score10(r.score) : "", r.category ?? "", r.integrityScore, r.integrityVerdict, r.violationCount, fmtDateTime(r.completedAt)]),
       },
       {
         name: "Skill Scores",
-        columns: ["Candidate", "Emp ID", "JD", "Skill", "Expected Level", "Demonstrated Level", "Met Expectation"],
-        rows: filtered.flatMap((r) => r.skillGap.map((g) => [r.candidateName, r.empId, r.jdTitle ?? "", g.skill, g.expectedLevel, g.demonstratedLevel,
+        columns: ["Candidate", "Email", "JD", "Skill", "Expected Level", "Demonstrated Level", "Met Expectation"],
+        rows: filtered.flatMap((r) => r.skillGap.map((g) => [r.candidateName, r.email, r.jdTitle ?? "", g.skill, g.expectedLevel, g.demonstratedLevel,
           g.demonstratedLevel === "Not Assessed" ? "—" : g.met ? "Yes" : "No"])),
       },
       {
@@ -105,7 +105,7 @@ export default function Results() {
   // Group by candidate, keeping the filtered order.
   const groups = useMemo(() => {
     const m = new Map<string, ResultRow[]>();
-    for (const r of filtered) m.set(r.empId, [...(m.get(r.empId) ?? []), r]);
+    for (const r of filtered) m.set(r.email, [...(m.get(r.email) ?? []), r]);
     return [...m.values()];
   }, [filtered]);
 
@@ -125,7 +125,7 @@ export default function Results() {
 
       <div className="card">
         <div className="toolbar" style={{ marginBottom: 0 }}>
-          <input type="search" placeholder="Search name or Emp ID" aria-label="Search results" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input type="search" placeholder="Search name, email or reference ID" aria-label="Search results" value={search} onChange={(e) => setSearch(e.target.value)} />
           <select aria-label="Filter by cluster" value={cluster} onChange={(e) => setCluster(e.target.value)}>
             <option value="">All clusters</option>{clusters.map((c) => <option key={c}>{c}</option>)}
           </select>
@@ -148,7 +148,7 @@ export default function Results() {
             <tbody>
               {rows === null && <EmptyRow colSpan={COLS}>Loading…</EmptyRow>}
               {rows !== null && groups.length === 0 && <EmptyRow colSpan={COLS}>No results{all.length ? " match these filters" : " yet"}.</EmptyRow>}
-              {groups.map((g) => (g.length === 1 ? <AttemptRows key={g[0].interviewId} row={g[0]} /> : <CandidateGroup key={g[0].empId} rows={g} />))}
+              {groups.map((g) => (g.length === 1 ? <AttemptRows key={g[0].interviewId} row={g[0]} /> : <CandidateGroup key={g[0].email} rows={g} />))}
             </tbody>
           </table>
         </div>
@@ -164,7 +164,7 @@ function CandidateGroup({ rows }: { rows: ResultRow[] }) {
   return (
     <>
       <tr>
-        <td><strong>{rows[0].candidateName}</strong><div className="sub-line">{rows[0].empId}</div></td>
+        <td><strong>{rows[0].candidateName}</strong><div className="sub-line">{rows[0].email}</div></td>
         <td colSpan={6} className="muted">{rows.length} interview attempts — expand to see each JD's result.</td>
         <td className="actions"><button className="btn secondary small" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Hide" : `Results (${rows.length})`}</button></td>
       </tr>
@@ -179,7 +179,7 @@ function AttemptRows({ row: r, nested }: { row: ResultRow; nested?: boolean }) {
     <>
       <tr className={r.status !== "COMPLETED" ? "row-warning" : undefined}>
         <td style={nested ? { paddingLeft: 28 } : undefined}>
-          {nested ? <strong>{r.jdTitle ?? "Cluster-only"}</strong> : <><strong>{r.candidateName}</strong><div className="sub-line">{r.empId}</div></>}
+          {nested ? <strong>{r.jdTitle ?? "Cluster-only"}</strong> : <><strong>{r.candidateName}</strong><div className="sub-line">{r.email}</div></>}
         </td>
         <td>{nested ? <span className="faint">—</span> : r.jdTitle ?? <span className="faint">cluster-only</span>}</td>
         <td>{r.status === "COMPLETED" ? "✓ Completed" : r.status === "EVAL_FAILED" ? "✕ Eval Failed" : "⚠ No Show"}</td>

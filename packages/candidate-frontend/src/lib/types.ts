@@ -2,8 +2,9 @@ export type QuestionSection = "definitions" | "scenarios" | "coding";
 export type InputMode = "voice" | "typed";
 
 export interface CandidateProfile {
-  empId: string;
-  empName: string;
+  email: string;
+  name: string;
+  refId: string | null;
   cluster: string;
   jdRef: string | null;
   hasCoding: boolean;

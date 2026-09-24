@@ -30,8 +30,9 @@ router.get("/", async (_req, res) => {
     const integrity = computeIntegrity(violations.map((v) => v.type));
     return {
       interviewId: d.id,
-      empId: iv.candidateId,
-      candidateName: candidate?.empName ?? iv.candidateId,
+      email: iv.candidateId,
+      refId: candidate?.refId ?? null,
+      candidateName: candidate?.name ?? iv.candidateId,
       cluster: candidate?.skillCluster ?? "unknown",
       jdTitle: iv.jdSnapshot?.title ?? (iv.jdRef ? jdTitle.get(iv.jdRef) ?? null : null),
       batchId: candidate?.batchId ?? null,
@@ -65,8 +66,8 @@ router.get("/:interviewId/pdf", async (req, res) => {
 
   const [detail, candidate] = await Promise.all([loadResultDetail(req.params.interviewId, interview), loadCandidate(interview.candidateId)]);
   const header = {
-    empId: interview.candidateId,
-    name: candidate?.empName ?? interview.candidateId,
+    email: interview.candidateId,
+    name: candidate?.name ?? interview.candidateId,
     jdTitle: interview.jdSnapshot?.title ?? candidate?.skillCluster ?? "General",
     cluster: candidate?.skillCluster ?? "unknown",
     completedAt: interview.completedAt?.toDate() ?? null,

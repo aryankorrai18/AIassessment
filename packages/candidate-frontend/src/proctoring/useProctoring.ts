@@ -325,14 +325,14 @@ export function useProctoring(active: boolean, videoRef: RefObject<HTMLVideoElem
 }
 
 /**
- * Hard-blocks a second tab/window of the same interview (scoped by empId — the frontend never
+ * Hard-blocks a second tab/window of the same interview (scoped by the candidate's email — the frontend never
  * has the interviewId). A UX guard, not an integrity signal: no violation is logged.
  */
-export function useDuplicateTabGuard(empId: string | undefined): boolean {
+export function useDuplicateTabGuard(email: string | undefined): boolean {
   const [duplicate, setDuplicate] = useState(false);
   useEffect(() => {
-    if (!empId || typeof BroadcastChannel === "undefined") return;
-    const channel = new BroadcastChannel(`gapvise-interview:${empId}`);
+    if (!email || typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel(`gapvise-interview:${email}`);
     const me = { id: Math.random().toString(36).slice(2), openedAt: Date.now() };
     channel.onmessage = (e: MessageEvent<{ type: string; id: string; openedAt: number }>) => {
       const msg = e.data;
@@ -343,6 +343,6 @@ export function useDuplicateTabGuard(empId: string | undefined): boolean {
     };
     channel.postMessage({ type: "hello", ...me });
     return () => channel.close();
-  }, [empId]);
+  }, [email]);
   return duplicate;
 }

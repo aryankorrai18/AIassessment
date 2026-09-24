@@ -17,7 +17,7 @@ export function latestScoredAttempts(rows: ResultRow[]): ResultRow[] {
   const latest = new Map<string, ResultRow>();
   for (const r of rows) {
     if (r.reportStatus !== "COMPLETED" || !r.jdTitle || r.skillGap.length === 0) continue;
-    const key = `${r.empId}::${r.jdTitle}`;
+    const key = `${r.email}::${r.jdTitle}`;
     const prev = latest.get(key);
     if (!prev || (r.completedAt ?? 0) > (prev.completedAt ?? 0)) latest.set(key, r);
   }
