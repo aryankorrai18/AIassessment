@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { IconCheck, IconX } from "../components/Icons";
 import { useToast } from "../components/Toast";
 import { api, errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -101,7 +102,7 @@ export default function AdminUsers() {
                   <td>{u.name} {u.id === me?.id && <span className="pill">You</span>}</td>
                   <td>{u.email}</td>
                   <td><span className={`pill ${u.role === "MASTER_ADMIN" ? "ok" : "warn"}`}>{u.role}</span></td>
-                  <td>{u.isActive ? "✓ Active" : <span className="error-text">✕ Deactivated</span>}</td>
+                  <td>{u.isActive ? <span className="status-text ok"><IconCheck size={14} />Active</span> : <span className="status-text err"><IconX size={14} />Deactivated</span>}</td>
                   <td>{fmtDate(u.createdAt)}</td>
                   <td className="actions">
                     <button className={`btn small ${u.isActive ? "danger" : "secondary"}`} disabled={u.id === me?.id} onClick={() => void setActive(u, !u.isActive)}>

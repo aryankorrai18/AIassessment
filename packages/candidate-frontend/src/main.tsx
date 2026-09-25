@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ErrorBoundary, RequireActiveInterview, RequireFinishedInterview, RequireProfile, Shell } from "./components/Shell";
 import { CandidateProvider } from "./lib/context";
+import "@fontsource-variable/plus-jakarta-sans";
 import "./styles/index.css";
 import "./styles/cand-common.css";
 

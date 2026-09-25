@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent } from "react";
-import { IconUpload } from "../components/Icons";
+import { IconAlert, IconCheck, IconPlus, IconRefresh, IconSearch, IconTrash, IconUpload, IconX } from "../components/Icons";
 import { useToast } from "../components/Toast";
 import { api, errorMessage } from "../lib/api";
 import { missingColumns, OPTIONAL_COLUMNS, REQUIRED_COLUMNS, rowFromSheet, validateRows, type ImportRow, type ValidatedRow } from "../lib/candidateValidation";
 import { readFirstSheet } from "../lib/excel";
-import { fmtDateTime } from "../lib/format";
+import { fmtDateTime, fmtShort } from "../lib/format";
 import type { CandidateRow, JdListRow } from "../lib/types";
-import { EmptyRow, Modal, StatusPill } from "./shared";
+import { EmptyRow, Modal, RowMenu, StatusPill } from "./shared";
 
 const PREVIEW_PAGE_SIZE = 100;
 const IMPORT_CHUNK_SIZE = 200;
@@ -89,42 +89,47 @@ function CandidateList({ candidates, jds, reload }: { candidates: CandidateRow[]
   return (
     <div className="card">
       <div className="toolbar">
-        <input type="search" placeholder="Search name, email or reference ID" aria-label="Search candidates" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
-        <button className="btn secondary" onClick={() => void reload()}>Refresh</button>
+        <div className="search-field">
+          <IconSearch />
+          <input type="search" placeholder="Search name, email or reference ID…" aria-label="Search candidates" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
+        </div>
+        <button className="btn secondary" onClick={() => void reload()}><IconRefresh />Refresh</button>
         <span className="spacer" />
         <span className="muted">{filtered.length} candidate(s)</span>
       </div>
       <div className="table-scroll">
         <table className="data-table">
           <thead>
-            <tr><th>Name</th><th>Email</th><th>Reference ID</th><th>Cluster</th><th>JD Reference</th><th>Tier</th><th>Batch</th><th>Status</th><th /></tr>
+            <tr><th>Candidate</th><th>Reference ID</th><th>Cluster</th><th>JD Reference</th><th>Tier</th><th>Batch</th><th>Status</th><th><span className="visually-hidden">Actions</span></th></tr>
           </thead>
           <tbody>
-            {candidates === null && <EmptyRow colSpan={9}>Loading…</EmptyRow>}
-            {candidates !== null && pageRows.length === 0 && <EmptyRow colSpan={9}>{search ? "No candidates match your search." : "No candidates yet — import some from the Bulk upload tab."}</EmptyRow>}
+            {candidates === null && <EmptyRow colSpan={8}>Loading…</EmptyRow>}
+            {candidates !== null && pageRows.length === 0 && <EmptyRow colSpan={8}>{search ? "No candidates match your search." : "No candidates yet — import some from the Bulk upload tab."}</EmptyRow>}
             {pageRows.map((c) => {
               const busy = c.interviewStatus === "ACTIVE" || c.interviewStatus === "PENDING";
               return (
                 <tr key={c.email}>
-                  <td>{c.name}</td>
-                  <td>{c.email}</td>
-                  <td className="mono">{c.refId ?? <span className="faint">—</span>}</td>
-                  <td>{c.skillCluster}</td>
-                  <td>{c.jdRef ? titleByRef.get(c.jdRef) ?? c.jdRef : <span className="faint">—</span>}</td>
+                  <td><div className="cell-strong">{c.name}</div><div className="sub-line">{c.email}</div></td>
+                  <td className="mono nowrap">{c.refId ?? <span className="faint">—</span>}</td>
+                  <td className="nowrap">{c.skillCluster}</td>
+                  <td className="cell-clamp" title={c.jdRef ? titleByRef.get(c.jdRef) ?? c.jdRef : undefined}>{c.jdRef ? titleByRef.get(c.jdRef) ?? c.jdRef : <span className="faint">—</span>}</td>
                   <td>{c.tier}</td>
-                  <td>{c.batchId ? fmtDateTime(Date.parse(c.batchId)) : "—"}</td>
-                  <td>
+                  <td className="nowrap tabular" title={c.batchId ? fmtDateTime(Date.parse(c.batchId)) : undefined}>{c.batchId ? fmtShort(Date.parse(c.batchId)) : "—"}</td>
+                  <td className="nowrap">
                     <StatusPill status={c.interviewStatus} />
                     {c.interviewCount > 1 && <span className="pill">×{c.interviewCount}</span>}
                   </td>
                   <td className="actions">
-                    <button className="btn secondary small" disabled={busy} onClick={() => setReassessFor(c)}
-                      title={busy ? (c.interviewStatus === "ACTIVE" ? "This candidate is taking an interview right now." : "This candidate already has an interview awaiting scheduling or start.") : undefined}>
-                      Schedule Another Interview
+                    <button className="btn secondary small" disabled={busy} onClick={() => setReassessFor(c)} aria-label={`Schedule another interview for ${c.name}`}
+                      title={busy ? (c.interviewStatus === "ACTIVE" ? "This candidate is taking an interview right now." : "This candidate already has an interview awaiting scheduling or start.") : "Schedule Another Interview"}>
+                      <IconPlus />Schedule another
                     </button>
-                    <button className="btn secondary small" disabled={c.interviewStatus === "ACTIVE"} onClick={() => void remove(c, false)}
-                      title={c.interviewStatus === "ACTIVE" ? "Can't delete while an interview is in progress." : undefined}>Delete</button>
-                    <button className="btn danger small" disabled={c.interviewStatus === "ACTIVE"} onClick={() => void remove(c, true)}>Delete Candidate + Report</button>
+                    <RowMenu label={`More actions for ${c.name}`} items={[
+                      { label: "Delete", onSelect: () => void remove(c, false), disabled: c.interviewStatus === "ACTIVE",
+                        title: c.interviewStatus === "ACTIVE" ? "Can't delete while an interview is in progress." : undefined },
+                      { label: "Delete Candidate + Report", icon: <IconTrash />, danger: true, onSelect: () => void remove(c, true), disabled: c.interviewStatus === "ACTIVE",
+                        title: c.interviewStatus === "ACTIVE" ? "Can't delete while an interview is in progress." : undefined },
+                    ]} />
                   </td>
                 </tr>
               );
@@ -343,7 +348,10 @@ function BulkUpload({ jds, onImported }: { jds: JdListRow[]; onImported: () => P
                   <tr key={r.rowIndex} className={r.errors.length ? "row-error" : r.warnings.length ? "row-warning" : undefined}>
                     <td>{r.rowIndex}</td>
                     <td style={{ minWidth: 220 }}>
-                      <strong>{r.errors.length ? "✕ Blocked" : r.warnings.length ? "⚠ Warning" : "✓ Ready"}</strong>
+                      {r.errors.length
+                        ? <span className="status-text err"><IconX size={14} />Blocked</span>
+                        : r.warnings.length ? <span className="status-text warn"><IconAlert size={14} />Warning</span>
+                        : <span className="status-text ok"><IconCheck size={14} />Ready</span>}
                       {(r.errors.length > 0 || r.warnings.length > 0) && (
                         <ul className="list-plain sub-line">{[...r.errors, ...r.warnings].map((m) => <li key={m}>{m}</li>)}</ul>
                       )}

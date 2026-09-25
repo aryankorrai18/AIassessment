@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { IconAlert, IconLive } from "../components/Icons";
 import { api } from "../lib/api";
 import { fmtElapsed } from "../lib/format";
 import type { LiveRow } from "../lib/types";
@@ -67,7 +68,7 @@ export default function LiveMonitor() {
                   <td>{r.cluster}</td>
                   <td className="tabular">{r.startedAt ? fmtElapsed(now - r.startedAt) : "not started"}</td>
                   <td className="tabular">{r.lastHeartbeatAt ? `${fmtElapsed(now - r.lastHeartbeatAt)} ago` : "never"}</td>
-                  <td>{isStale(r) ? <span className="pill warn">⚠ Stale</span> : <span className="pill ok">✓ Live</span>}</td>
+                  <td>{isStale(r) ? <span className="pill warn"><IconAlert size={12} />Stale</span> : <span className="pill ok"><IconLive size={12} />Live</span>}</td>
                 </tr>
               ))}
             </tbody>

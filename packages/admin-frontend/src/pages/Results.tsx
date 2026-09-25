@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { IconAlert, IconCheck, IconDownload, IconFlag, IconX, IconSearch } from "../components/Icons";
 import { useToast } from "../components/Toast";
 import { api, errorMessage } from "../lib/api";
 import { downloadWorkbook } from "../lib/excel";
@@ -125,7 +126,7 @@ export default function Results() {
 
       <div className="card">
         <div className="toolbar" style={{ marginBottom: 0 }}>
-          <input type="search" placeholder="Search name, email or reference ID" aria-label="Search results" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="search-field"><IconSearch /><input type="search" placeholder="Search name, email or reference ID…" aria-label="Search results" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
           <select aria-label="Filter by cluster" value={cluster} onChange={(e) => setCluster(e.target.value)}>
             <option value="">All clusters</option>{clusters.map((c) => <option key={c}>{c}</option>)}
           </select>
@@ -182,12 +183,14 @@ function AttemptRows({ row: r, nested }: { row: ResultRow; nested?: boolean }) {
           {nested ? <strong>{r.jdTitle ?? "Cluster-only"}</strong> : <><strong>{r.candidateName}</strong><div className="sub-line">{r.email}</div></>}
         </td>
         <td>{nested ? <span className="faint">—</span> : r.jdTitle ?? <span className="faint">cluster-only</span>}</td>
-        <td>{r.status === "COMPLETED" ? "✓ Completed" : r.status === "EVAL_FAILED" ? "✕ Eval Failed" : "⚠ No Show"}</td>
+        <td>{r.status === "COMPLETED" ? <span className="status-text ok"><IconCheck size={14} />Completed</span>
+            : r.status === "EVAL_FAILED" ? <span className="status-text err"><IconX size={14} />Eval Failed</span>
+            : <span className="status-text warn"><IconAlert size={14} />No Show</span>}</td>
         <td className="tabular">{r.status === "NO_SHOW" ? "—" : isScoring(r) ? "Scoring…" : score10(r.score)}</td>
         <td><CategoryPill category={r.category} /></td>
         <td className="tabular">
           {r.status === "NO_SHOW" ? "—" : <>{r.integrityScore}/100 <span className="muted">({r.violationCount})</span></>}
-          {r.needsReview && <div className="error-text" style={{ fontSize: 12 }}>🚩 Needs review</div>}
+          {r.needsReview && <div className="status-text err" style={{ fontSize: 12, marginTop: 2 }}><IconFlag size={12} />Needs review</div>}
         </td>
         <td>{fmtDateTime(r.completedAt)}</td>
         <td className="actions">
@@ -217,7 +220,7 @@ function ResultDetailView({ row }: { row: ResultRow }) {
   return (
     <div className="result-detail">
       <div>
-        {d.reportStatus === "COMPLETED" && row.pdfPath && <a className="btn small" href={row.pdfPath} target="_blank" rel="noreferrer">Download PDF Report</a>}
+        {d.reportStatus === "COMPLETED" && row.pdfPath && <a className="btn small" href={row.pdfPath} target="_blank" rel="noreferrer"><IconDownload />Download PDF Report</a>}
         {d.reportStatus === "FAILED" && <div className="callout err" style={{ marginBottom: 0 }}>Evaluation failed: {d.lastError ?? "unknown error"}. Use "Retry stuck reports" to re-drive it.</div>}
         {(d.reportStatus === "PENDING" || d.reportStatus === "PROCESSING") && <div className="callout" style={{ marginBottom: 0 }}>Scoring is still running — this page refreshes automatically.</div>}
       </div>
@@ -276,7 +279,7 @@ function ResultDetailView({ row }: { row: ResultRow }) {
               {ev.skillGap.map((g) => (
                 <tr key={g.skill}>
                   <td>{g.skill}</td><td>{g.expectedLevel}</td><td>{g.demonstratedLevel}</td>
-                  <td>{g.demonstratedLevel === "Not Assessed" ? <span className="faint">— Not assessed</span> : g.met ? <span className="pill ok">✓ Met</span> : <span className="pill err">✕ Gap</span>}</td>
+                  <td>{g.demonstratedLevel === "Not Assessed" ? <span className="faint">— Not assessed</span> : g.met ? <span className="pill ok"><IconCheck size={12} />Met</span> : <span className="pill err"><IconX size={12} />Gap</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -287,15 +290,29 @@ function ResultDetailView({ row }: { row: ResultRow }) {
       <div>
         <div className="detail-label">Integrity evidence</div>
         {d.violations.length === 0 ? <span className="faint">No violations recorded.</span> : (
-          <div className="evidence-grid">
-            {d.violations.map((v) => (
-              <div key={v.id} className="evidence-card">
-                {v.snapshot ? <img src={v.snapshot} alt={`Snapshot: ${VIOLATION_LABELS[v.type] ?? v.type}`} /> : <div className="evidence-empty">No snapshot</div>}
-                <div className="evidence-label">{VIOLATION_LABELS[v.type] ?? v.type}</div>
-                <div className="sub-line tabular">{fmtDateTimeSeconds(v.occurredAt)}</div>
+          <>
+            {/* Snapshot cards only where there's an image; everything else as a compact timeline. */}
+            {d.violations.some((v) => v.snapshot) && (
+              <div className="evidence-grid">
+                {d.violations.filter((v) => v.snapshot).map((v) => (
+                  <div key={v.id} className="evidence-card">
+                    <img width={180} height={135} loading="lazy" src={v.snapshot!} alt={`Snapshot: ${VIOLATION_LABELS[v.type] ?? v.type}`} />
+                    <div className="evidence-label">{VIOLATION_LABELS[v.type] ?? v.type}</div>
+                    <div className="sub-line tabular">{fmtDateTimeSeconds(v.occurredAt)}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+            <ul className="evidence-list">
+              {d.violations.filter((v) => !v.snapshot).map((v) => (
+                <li key={v.id}>
+                  <IconAlert size={14} />
+                  <span className="evidence-label">{VIOLATION_LABELS[v.type] ?? v.type}</span>
+                  <span className="sub-line tabular">{fmtDateTimeSeconds(v.occurredAt)}</span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
 

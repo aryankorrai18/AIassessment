@@ -3,8 +3,8 @@ import { Link, Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { ErrorBoundary } from "./ErrorBoundary";
 import {
-  IconActivity, IconCalendar, IconChart, IconCpu, IconFile, IconHistory, IconList, IconLogo, IconLogout,
-  IconMoon, IconOverview, IconSettings, IconShield, IconSun, IconUsers,
+  IconActivity, IconCalendar, IconChart, IconClose, IconCpu, IconFile, IconHistory, IconList, IconLogo, IconLogout,
+  IconMenu, IconMoon, IconOverview, IconSettings, IconShield, IconSun, IconUsers,
 } from "./Icons";
 
 type Theme = "light" | "dark";
@@ -23,6 +23,8 @@ function useTheme(): [Theme, () => void] {
   const [theme, setTheme] = useState<Theme>(initialTheme);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
+    // Keep the browser chrome (mobile address bar) in step with the page background.
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#020617" : "#f8fafc");
   }, [theme]);
   const toggle = () => {
     const next = theme === "dark" ? "light" : "dark";
@@ -74,18 +76,37 @@ const NAV: NavGroup[] = [
   },
 ];
 
+const initials = (name = "") => name.split(/s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "?";
+
 export function Shell() {
   const { admin, logout } = useAuth();
   const [theme, toggleTheme] = useTheme();
   const { pathname } = useLocation();
   const isMaster = admin?.role === "MASTER_ADMIN";
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Mobile drawer: close on navigation and on Escape.
+  useEffect(() => setMenuOpen(false), [pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMenuOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   return (
     <div className="shell">
       <a className="skip-link" href="#main">Skip to main content</a>
-      <aside className="sidebar">
+      <header className="topbar">
+        <div className="brand-name"><IconLogo size={30} /> <span>GapVise <b>AI</b></span></div>
+        <button className="icon-btn" aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} aria-controls="sidebar" onClick={() => setMenuOpen(!menuOpen)}>
+          {menuOpen ? <IconClose size={20} /> : <IconMenu size={20} />}
+        </button>
+      </header>
+      <div className={`drawer-backdrop${menuOpen ? " open" : ""}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
+      <aside className={`sidebar${menuOpen ? " open" : ""}`} id="sidebar">
         <div className="brand">
-          <div className="brand-name"><IconLogo /> GapVise AI</div>
+          <div className="brand-name"><IconLogo size={32} /> <span>GapVise <b>AI</b></span></div>
           <div className="brand-sub">Admin Dashboard</div>
         </div>
         <nav className="nav" aria-label="Main">
@@ -100,9 +121,12 @@ export function Shell() {
           ))}
         </nav>
         <div className="identity">
-          <div>
-            <Link to="/admin/profile" className="identity-name">{admin?.name}</Link>
-            <div className="identity-role">{admin?.role}</div>
+          <div className="identity-row">
+            <span className="avatar" aria-hidden="true">{initials(admin?.name)}</span>
+            <div style={{ minWidth: 0 }}>
+              <Link to="/admin/profile" className="identity-name">{admin?.name}</Link>
+              <div className="identity-role">{admin?.role}</div>
+            </div>
           </div>
           <div className="identity-actions">
             <button className="btn secondary small" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>

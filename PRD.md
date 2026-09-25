@@ -1556,7 +1556,15 @@ with an OS-preference fallback, and Sign out.
 Shared CSS vocabulary: `.page-header`, `.card`, `.stat-row`/`.stat-card`
 (variants `total|ready|warn|blocked`), `.tabs`/`.tab-btn.active`, `.data-table`
 inside `.table-scroll`, `.pill` (`ok|warn|err`), `.form-grid`/`.form-field`,
-`.btn` (`.secondary`, `.danger`), `.toast` (`role="status" aria-live="polite"`).
+`.btn` (`.secondary`, `.danger`, `.danger-ghost`, `.small`, `.icon-only`), `.toast`
+(`role="status" aria-live="polite"`).
+
+**Visual design** follows `design-system/gapvise-ai/MASTER.md` (tokens, type,
+components) in both apps. **Glyph convention:** wherever §11–§12 show a symbol
+in a label — ✓ ✕ ⚠ ◷ ● ⊘ 🚩 🎙 — the app renders the matching SVG icon from the
+design system (check, cross, warning, clock, live dot, ban, flag, microphone)
+before the text, never the literal character. Interview statuses display as
+readable labels — Pending, Active, Completed, No-show, Expired — with their icon and tone.
 
 ### 11.1 Login
 
@@ -1597,12 +1605,14 @@ Reference ID · Cluster · JD Reference (resolved to title) · Tier · Batch (IS
 date+time) · Status · actions. Status pills: PENDING warn, ACTIVE ok, COMPLETED
 ok, NO_SHOW err, EXPIRED err, plus a `×N` pill when `interviewCount > 1`.
 
-Three per-row actions: **Schedule Another Interview** (disabled when ACTIVE or
-PENDING, with an explanatory tooltip) opening the reassess modal · **Delete**
-(disabled when ACTIVE; confirm copy differs for a COMPLETED candidate, spelling
-out that their score/report history is *not* deleted) · **Delete Candidate +
-Report** (danger; much stronger confirm naming the attempt count and that it
-cannot be undone).
+Per-row actions: a visible **Schedule another** button (accessible name and
+tooltip "Schedule Another Interview"; disabled when ACTIVE or PENDING, with an
+explanatory tooltip) opening the reassess modal, plus a **⋯ More actions** menu
+(`aria-haspopup="menu"`, arrow-key navigation, Escape closes) containing
+**Delete** (disabled when ACTIVE; confirm copy differs for a COMPLETED
+candidate, spelling out that their score/report history is *not* deleted) and
+**Delete Candidate + Report** (danger, last in the menu; much stronger confirm
+naming the attempt count and that it cannot be undone).
 
 Reassess modal: `role="dialog" aria-modal="true"`, click-outside closes unless
 submitting; a single JD field backed by a datalist of known titles; explains
@@ -1714,10 +1724,11 @@ Stat row: Scheduled · Awaiting start (warn) · No-shows (blocked) · Completed 
 **Scheduled tab.** Status filter + two sweep buttons ("Run no-show sweep now",
 "Run idle-interview sweep now" with an abandoned-tab tooltip), each toasting the
 result counts. Columns: Candidate (name; `email · reference ID`) · Cluster / JD (`JD:
-<ref>` ok-pill or `cluster-only` warn-pill) · Scheduled (or an inline
+<JD title>` info-pill or `cluster-only` warn-pill) · Scheduled (or an inline
 `datetime-local` with Confirm/Cancel while rescheduling) · Status (icon pills:
-PENDING `◷` warn, ACTIVE `●` ok, COMPLETED `✓` ok, NO_SHOW `✕` err, EXPIRED `⊘`
-err) · Reminders (`N / 3`, class `reminders full` at ≥3) · Actions. Actions
+Pending `◷` warn, Active `●` info, Completed `✓` ok, No-show `✕` err, Expired `⊘`
+err) · Reminders (`N / 3` for PENDING/NO_SHOW rows, "—" otherwise; class
+`reminders full` at ≥3) · Actions. Actions
 render only for PENDING or NO_SHOW: Resend key, Reschedule (pre-filled, toasts
 that the reminder count was reset). NO_SHOW rows get `row-error`.
 
@@ -2223,6 +2234,9 @@ built product:
   normalized to uppercase at login (§7.8).
 - **Login moves the interview to `ACTIVE`** (§7.8).
 - Candidate-app header reads "AI Skills Assessment" (§12.0).
+- **Visual refresh** (§11.0): design system in `design-system/gapvise-ai/`, new
+  brand mark (`brand/`), SVG icons instead of symbol glyphs, readable status
+  labels, mobile navigation drawer, Candidates row actions menu (§11.3).
 
 **v2.0** — Build-grade specification of the single-organization product.
 

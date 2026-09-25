@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { IconCheck, IconMic } from "../components/Icons";
 import { useNavigate } from "react-router-dom";
 import { CodeEditor } from "../components/CodeEditor";
 import { useSpeech } from "../components/useSpeech";
@@ -172,7 +173,7 @@ function InterviewScreen({ interview }: { interview: InterviewState }) {
           const answered = sp.questions.filter((x) => answeredIds.has(x.id)).length;
           return (
             <li key={sp.section} className={`section-step ${status}`}>
-              <span className="step-marker" aria-hidden="true">{status === "done" ? "✓" : SECTION_LABELS[sp.section][0]}</span>
+              <span className="step-marker" aria-hidden="true">{status === "done" ? <IconCheck size={14} /> : SECTION_LABELS[sp.section][0]}</span>
               <div className="step-body">
                 <div className="step-title">
                   {SECTION_LABELS[sp.section]}
@@ -227,8 +228,8 @@ function InterviewScreen({ interview }: { interview: InterviewState }) {
         <div className="controls-row">
           {!isCoding && speech.problem !== "unsupported" && (
             speech.recording
-              ? <button className="btn danger" onClick={stopRecording} disabled={busy}><span className="rec-dot" aria-hidden="true" /> Stop recording</button>
-              : <button className="btn secondary" onClick={() => speech.start(answer)} disabled={busy || speech.problem === "denied"}>🎙 Answer by voice</button>
+              ? <button className="btn danger" onClick={stopRecording} disabled={busy}><span className="rec-dot" aria-hidden="true" />Stop recording</button>
+              : <button className="btn secondary" onClick={() => speech.start(answer)} disabled={busy || speech.problem === "denied"}><IconMic />Answer by voice</button>
           )}
           <span style={{ flex: 1 }} />
           <button className="btn" disabled={busy || !answer.trim()} onClick={() => void submit()}>{busy ? "Submitting…" : isLastQuestion ? "Submit & finish" : "Submit answer"}</button>

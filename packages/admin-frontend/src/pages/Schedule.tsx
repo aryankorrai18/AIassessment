@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { IconCheck, IconX } from "../components/Icons";
 import { useToast } from "../components/Toast";
 import { api, errorMessage } from "../lib/api";
 import { downloadWorkbook } from "../lib/excel";
 import { fmtDateTime, toLocalInput, ymd } from "../lib/format";
-import type { InterviewStatus, IssuedKey, ScheduledRow, UnscheduledRow } from "../lib/types";
+import type { InterviewStatus, IssuedKey, JdListRow, ScheduledRow, UnscheduledRow } from "../lib/types";
 import { EmptyRow, StatusPill } from "./shared";
 
 // The candidate portal can live on a different origin from this admin app.
@@ -17,10 +18,12 @@ export default function Schedule() {
   const [scheduled, setScheduled] = useState<ScheduledRow[] | null>(null);
   const [unscheduled, setUnscheduled] = useState<UnscheduledRow[] | null>(null);
   const [issued, setIssued] = useState<IssuedKey[]>([]);
+  const [jdTitles, setJdTitles] = useState<Map<string, string>>(new Map());
 
   const load = useCallback(async () => {
     try {
-      const [s, u] = await Promise.all([api<ScheduledRow[]>("/schedule"), api<UnscheduledRow[]>("/schedule/unscheduled")]);
+      const [s, u, jds] = await Promise.all([api<ScheduledRow[]>("/schedule"), api<UnscheduledRow[]>("/schedule/unscheduled"), api<JdListRow[]>("/jd-master")]);
+      setJdTitles(new Map(jds.map((j) => [j.jdRef, j.title])));
       setScheduled(s);
       setUnscheduled(u);
     } catch (err) {
@@ -55,7 +58,7 @@ export default function Schedule() {
             {issued.map((k) => (
               <div key={k.email} className="mono">
                 {k.name} ({k.email}): <strong>{k.key}</strong>{"  "}
-                {k.emailSent ? <span className="pill ok">✓ emailed</span> : <span className="pill err">✕ email failed</span>}
+                {k.emailSent ? <span className="pill ok"><IconCheck size={12} />emailed</span> : <span className="pill err"><IconX size={12} />email failed</span>}
                 {k.emailPreviewUrl && <> <a href={k.emailPreviewUrl} target="_blank" rel="noreferrer">Preview email →</a></>}
               </div>
             ))}
@@ -80,13 +83,13 @@ export default function Schedule() {
       </div>
 
       {tab === "scheduled"
-        ? <ScheduledTab rows={scheduled} reload={load} onIssued={addIssued} />
+        ? <ScheduledTab rows={scheduled} jdTitles={jdTitles} reload={load} onIssued={addIssued} />
         : <ScheduleNewTab rows={unscheduled} onDone={async (keys) => { addIssued(keys); await load(); setTab("scheduled"); }} />}
     </>
   );
 }
 
-function ScheduledTab({ rows, reload, onIssued }: { rows: ScheduledRow[] | null; reload: () => Promise<void>; onIssued: (k: IssuedKey[]) => void }) {
+function ScheduledTab({ rows, jdTitles, reload, onIssued }: { rows: ScheduledRow[] | null; jdTitles: Map<string, string>; reload: () => Promise<void>; onIssued: (k: IssuedKey[]) => void }) {
   const toast = useToast();
   const [status, setStatus] = useState("");
   const [editing, setEditing] = useState<{ id: string; value: string } | null>(null);
@@ -154,7 +157,7 @@ function ScheduledTab({ rows, reload, onIssued }: { rows: ScheduledRow[] | null;
             {filtered.map((r) => (
               <tr key={r.interviewId} className={r.status === "NO_SHOW" ? "row-error" : undefined}>
                 <td>{r.name}<div className="sub-line">{r.email}{r.refId ? ` · ${r.refId}` : ""}</div></td>
-                <td>{r.cluster}<div style={{ marginTop: 3 }}>{r.jdRef ? <span className="pill ok">JD: {r.jdRef}</span> : <span className="pill warn">cluster-only</span>}</div></td>
+                <td>{r.cluster}<div style={{ marginTop: 3 }}>{r.jdRef ? <span className="pill info" title={r.jdRef}>JD: {jdTitles.get(r.jdRef) ?? r.jdRef}</span> : <span className="pill warn">cluster-only</span>}</div></td>
                 <td>
                   {editing?.id === r.interviewId ? (
                     <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -165,7 +168,7 @@ function ScheduledTab({ rows, reload, onIssued }: { rows: ScheduledRow[] | null;
                   ) : fmtDateTime(r.scheduledAt)}
                 </td>
                 <td><StatusPill status={r.status} icon /></td>
-                <td className={`tabular reminders${r.reminderCount >= 3 ? " full" : ""}`} style={r.reminderCount >= 3 ? { color: "var(--err)", fontWeight: 600 } : undefined}>{r.reminderCount} / 3</td>
+                <td className={`tabular reminders${r.reminderCount >= 3 ? " full" : ""}`} style={r.reminderCount >= 3 ? { color: "var(--err)", fontWeight: 600 } : undefined}>{r.status === "PENDING" || r.status === "NO_SHOW" ? `${r.reminderCount} / 3` : <span className="faint">—</span>}</td>
                 <td className="actions">
                   {(r.status === "PENDING" || r.status === "NO_SHOW") && editing?.id !== r.interviewId && (
                     <>

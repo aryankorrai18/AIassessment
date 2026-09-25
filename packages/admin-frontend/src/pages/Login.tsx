@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { IconLogo } from "../components/Icons";
+import { IconCheck, IconLogo } from "../components/Icons";
 import { errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import "../styles/login.css";
@@ -32,12 +32,12 @@ export default function LoginPage() {
   return (
     <div className="login-split">
       <section className="login-hero">
-        <div className="brand-name login-brand"><IconLogo /> GapVise AI</div>
+        <div className="brand-name login-brand"><IconLogo size={40} /> <span>GapVise <b>AI</b></span></div>
         <h1>AI-assisted technical interviews, from job description to scored report.</h1>
         <ul className="login-features">
-          <li><strong>Structured from the JD.</strong> Upload a job description; required skills and levels are extracted and a question bank is generated for you.</li>
-          <li><strong>Proctored, one-attempt interviews.</strong> Candidates sign in with a one-time key and are monitored without anything being recorded.</li>
-          <li><strong>Defensible scoring.</strong> Every answer is scored individually; overall, section and skill-gap results are computed, not guessed.</li>
+          <li><span className="feature-icon"><IconCheck size={14} /></span><span><strong>Structured from the JD.</strong> Upload a job description; required skills and levels are extracted and a question bank is generated for you.</span></li>
+          <li><span className="feature-icon"><IconCheck size={14} /></span><span><strong>Proctored, one-attempt interviews.</strong> Candidates sign in with a one-time key and are monitored without anything being recorded.</span></li>
+          <li><span className="feature-icon"><IconCheck size={14} /></span><span><strong>Defensible scoring.</strong> Every answer is scored individually; overall, section and skill-gap results are computed, not guessed.</span></li>
         </ul>
       </section>
       <section className="login-panel">

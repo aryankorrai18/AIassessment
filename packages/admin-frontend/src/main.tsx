@@ -6,6 +6,7 @@ import { RequireAdmin, RequireMasterAdmin, Shell } from "./components/Shell";
 import { ToastProvider } from "./components/Toast";
 import { AuthProvider } from "./lib/auth";
 import LoginPage from "./pages/Login";
+import "@fontsource-variable/plus-jakarta-sans";
 import "./styles/index.css";
 import "./styles/admin-common.css";
 

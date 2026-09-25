@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { IconSearch } from "../components/Icons";
 import { useToast } from "../components/Toast";
 import { api, errorMessage } from "../lib/api";
 import { fmtDateTimeSeconds } from "../lib/format";
@@ -63,7 +64,7 @@ export default function AuditLog() {
       </div>
       <div className="card">
         <div className="toolbar">
-          <input type="search" placeholder="Search summary, actor or target" aria-label="Search audit log" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="search-field"><IconSearch /><input type="search" placeholder="Search summary, actor or target…" aria-label="Search audit log" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
           <select aria-label="Filter by action" value={action} onChange={(e) => setAction(e.target.value)}>
             <option value="">All actions</option>
             {presentActions.map((a) => <option key={a} value={a}>{ACTIONS[a]?.label ?? a}</option>)}

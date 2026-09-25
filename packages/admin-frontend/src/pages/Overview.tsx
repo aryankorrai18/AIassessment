@@ -26,7 +26,16 @@ export default function Overview() {
   }, []);
 
   if (error) return <div className="callout err">{error}</div>;
-  if (!data) return <div className="muted">Loading…</div>;
+  if (!data) {
+    return (
+      <div aria-busy="true" aria-label="Loading overview">
+        <div className="skeleton" style={{ height: 34, width: 200, marginBottom: 28 }} />
+        <div className="stat-row">{Array.from({ length: 5 }, (_, i) => <div key={i} className="skeleton" style={{ height: 88 }} />)}</div>
+        <div className="skeleton" style={{ height: 140, marginBottom: 20 }} />
+        <div className="skeleton" style={{ height: 220 }} />
+      </div>
+    );
+  }
 
   const now = Date.now();
   const activeNow = data.live.filter((l) => l.lastHeartbeatAt && now - l.lastHeartbeatAt <= STALE_MS).length;

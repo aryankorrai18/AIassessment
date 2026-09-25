@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { IconCheck } from "../components/Icons";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { clearAllDrafts, useCandidate } from "../lib/context";
@@ -28,7 +29,7 @@ export default function End() {
 
   return (
     <div className="card end-card">
-      <div className="check-badge" aria-hidden="true">✓</div>
+      <div className="check-badge" aria-hidden="true"><IconCheck size={34} /></div>
       <h1 style={{ fontSize: 26 }}>{timeExpired ? "Time's up" : "Assessment Complete"}</h1>
       <p className="muted" style={{ margin: 0 }}>
         {timeExpired

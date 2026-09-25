@@ -1,4 +1,5 @@
 import { Component, Suspense, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
+import { IconLogo, IconMoon, IconSun } from "./Icons";
 import { Navigate, Outlet } from "react-router-dom";
 import { useCandidate } from "../lib/context";
 
@@ -8,6 +9,7 @@ function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(() => (document.documentElement.dataset.theme === "light" ? "light" : "dark"));
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#020617" : "#f8fafc");
   }, [theme]);
   const toggle = () => {
     const next = theme === "dark" ? "light" : "dark";
@@ -18,7 +20,7 @@ function ThemeToggle() {
     }
     setTheme(next);
   };
-  return <button className="btn ghost small" onClick={toggle} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>{theme === "dark" ? "☀ Light" : "☾ Dark"}</button>;
+  return <button className="btn ghost small" onClick={toggle} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>{theme === "dark" ? <><IconSun />Light</> : <><IconMoon />Dark</>}</button>;
 }
 
 export function Shell() {
@@ -27,9 +29,9 @@ export function Shell() {
     <>
       <header className="cand-header">
         <div className="cand-brand">
-          <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)" /><path d="M9 17.5l4.5 4.5L23 11" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <IconLogo size={32} />
           <div>
-            <div className="cand-brand-name">GapVise AI</div>
+            <div className="cand-brand-name">GapVise <b>AI</b></div>
             <div className="cand-brand-sub">AI Skills Assessment</div>
           </div>
         </div>
