@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "seed:admin": "tsx scripts/seedAdmin.ts",
-    "emulator": "firebase emulators:start --only firestore"
+    "emulator": "npx -y firebase-tools@latest emulators:start --only firestore --project gapvise-dev"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
