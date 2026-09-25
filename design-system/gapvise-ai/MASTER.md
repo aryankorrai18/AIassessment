@@ -19,6 +19,12 @@ are reserved for marketing surfaces (hero banner, deck).
 | Personality | Trustworthy, precise, calm. Evidence over hype. |
 | Voice | Plain, specific, second person. Say what happened and what to do next. |
 
+**Exports:** `brand/logo-mark-{32,64,192,512}.png` and the wordmark lockups
+`brand/logo-lockup-light.png` / `logo-lockup-dark.png` (transparent, for light
+and dark backgrounds). Marketing: `brand/marketing/hero.html` is the source of
+the landing hero (`hero-1920x1080.png`) and the social card (`og-1200x630.png`,
+open the page with `?format=og`).
+
 **Logo rules:** minimum size 16px (favicon); keep clear space ≥ ¼ of the mark's
 width; never recolor the dot anything but orange; on dark backgrounds use the
 same mark (it carries its own blue tile).
