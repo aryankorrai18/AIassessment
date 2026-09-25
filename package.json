@@ -1,9 +1,16 @@
 {
   "name": "gapvise-ai",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
+    "setup:mediapipe": "npm run setup:mediapipe -w packages/candidate-frontend",
+    "seed:admin": "npm run seed:admin -w packages/backend",
     "dev:backend": "npm run dev -w packages/backend",
-    "test": "npm test -w packages/backend"
+    "dev:admin": "npm run dev -w packages/admin-frontend",
+    "dev:candidate": "npm run dev -w packages/candidate-frontend",
+    "test": "npm test -w packages/backend",
+    "check": "npm run typecheck -w packages/backend && npm test -w packages/backend && npm run lint -w packages/admin-frontend && npm run build -w packages/admin-frontend && npm run lint -w packages/candidate-frontend && npm run build -w packages/candidate-frontend"
   }
 }
