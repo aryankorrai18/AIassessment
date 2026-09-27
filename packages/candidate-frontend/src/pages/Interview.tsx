@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { IconCheck, IconChevronDown, IconLogo, IconMic } from "../components/Icons";
 import { useNavigate } from "react-router-dom";
 import { CodeEditor } from "../components/CodeEditor";
+import { ThemeToggle } from "../components/Shell";
 import { useSpeech } from "../components/useSpeech";
 import { errorMessage } from "../lib/api";
 import { DRAFT_PREFIX, useCandidate } from "../lib/context";
@@ -10,6 +12,7 @@ import { useDuplicateTabGuard, useProctoring } from "../proctoring/useProctoring
 import "../styles/interview.css";
 
 const LOW_TIME_MS = 5 * 60 * 1000;
+const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
 // Drafts are keyed PER QUESTION so a restore can never put one question's draft into another's box.
 const draftKey = (questionId: string) => DRAFT_PREFIX + questionId;
@@ -57,7 +60,7 @@ export default function Interview() {
 }
 
 function InterviewScreen({ interview }: { interview: InterviewState }) {
-  const { sectionTimeLimitMs, submitAnswer, skipSection, resumeInterview } = useCandidate();
+  const { profile, sectionTimeLimitMs, submitAnswer, skipSection, resumeInterview } = useCandidate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const proctor = useProctoring(true, videoRef);
 
@@ -96,6 +99,18 @@ function InterviewScreen({ interview }: { interview: InterviewState }) {
     setError(null);
     stopRecording();
   }, [q.id, stopRecording]);
+
+  // Each new question starts at the top of the page, with the cursor in the answer box.
+  const composerRef = useRef<HTMLDivElement>(null);
+  const firstQuestion = useRef(true);
+  useEffect(() => {
+    if (firstQuestion.current) {
+      firstQuestion.current = false;
+      return;
+    }
+    window.scrollTo({ top: 0 });
+    composerRef.current?.querySelector("textarea")?.focus({ preventScroll: true });
+  }, [q.id]);
 
   // ---- Section timer: purely cosmetic; the real deadline is enforced server-side ----
   const [now, setNow] = useState(Date.now());
@@ -156,115 +171,162 @@ function InterviewScreen({ interview }: { interview: InterviewState }) {
   };
 
   const remainingInSection = section.questions.length - answeredInSection;
+  const low = remaining < LOW_TIME_MS;
+  const timeLeftPct = sectionTimeLimitMs > 0 ? Math.max(0, Math.min(100, (remaining / sectionTimeLimitMs) * 100)) : 100;
+  const trimmed = answer.trim();
+  const size = isCoding ? `${answer ? answer.split("\n").length : 0} lines` : `${trimmed ? trimmed.split(/\s+/).length : 0} words`;
+  const sectionName = SECTION_LABELS[section.section];
+
+  // Ctrl/Cmd + Enter submits from anywhere in the composer.
+  const onComposerKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Enter" || !(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    if (!busy && trimmed) void submit();
+  };
 
   return (
-    <div className="interview">
-      {/* 1. Section timer bar */}
-      <div className={`timer-bar${remaining < LOW_TIME_MS ? " low" : ""}`} data-section={interview.currentSection} role="timer" aria-live="off">
-        <span className="timer-label">{SECTION_LABELS[interview.currentSection]} section</span>
-        <span className="timer-value tabular">{fmtClock(remaining)} remaining</span>
-      </div>
-
-      {/* 2. Stepper */}
-      <ol className="section-stepper">
-        {interview.plan.map((sp, i) => {
-          const status = i < sectionIdx ? "done" : i === sectionIdx ? "active" : "upcoming";
-          const answered = sp.questions.filter((x) => answeredIds.has(x.id)).length;
-          return (
-            <li key={sp.section} className={`section-step ${status}`}>
-              <span className="step-marker" aria-hidden="true">{status === "done" ? "✓" : SECTION_LABELS[sp.section][0]}</span>
-              <div className="step-body">
-                <div className="step-title">
-                  {SECTION_LABELS[sp.section]}
-                  <span className="step-badge">{status === "done" ? "Done" : status === "active" ? "In progress" : "Upcoming"}</span>
-                </div>
-                <div className="step-progress" aria-hidden="true"><div style={{ width: `${(answered / sp.questions.length) * 100}%` }} /></div>
-                <div className="step-count tabular">{answered} / {sp.questions.length} questions</div>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-
-      {/* 3. Info row */}
-      <div className="info-row">
-        <button className="btn secondary" disabled={busy} onClick={() => setConfirmSkip(true)}>{isLastSection ? "Submit section & finish" : "Submit section →"}</button>
-        <span className="proctor-chip">
-          <span className="live-dot" aria-hidden="true" /> Proctoring active
-          {proctor.strikeCount > 0 && <span className="strike"> · {proctor.strikeCount} flagged</span>}
-        </span>
-      </div>
-
-      {/* 4. Question card */}
-      <section className="card question-card" aria-labelledby="q-heading">
-        <div className="question-meta">
-          <span className="pill">{SECTION_LABELS[q.section]}</span>
-          <span id="q-heading" className="muted">Question {q.index} of {section.questions.length}</span>
+    <div className="session">
+      <header className="session-bar">
+        <div className="session-bar-inner">
+          <IconLogo size={28} />
+          <div className="where">
+            <strong>{sectionName}</strong>
+            <span className="tabular">Question {q.index} of {section.questions.length}</span>
+          </div>
+          <span className="session-bar-spacer" />
+          <span className="proctor-status">
+            <span className="live-dot" aria-hidden="true" />
+            <span className="proctor-status-text">Proctoring on</span>
+            {proctor.strikeCount > 0 && <span className="flagged">{proctor.strikeCount} flagged</span>}
+          </span>
+          {/* Purely cosmetic: the real deadline is enforced server-side. */}
+          <div className={`clock${low ? " low" : ""}`} data-section={interview.currentSection} role="timer" aria-live="off" aria-label={`${fmtClock(remaining)} left in ${sectionName}`}>
+            <span className="clock-value">{fmtClock(remaining)}</span>
+            <span className="clock-label">left in {sectionName}</span>
+          </div>
+          <ThemeToggle />
         </div>
-        <p className="question-prompt">{q.prompt}</p>
-      </section>
+        <div className={`fuse${low ? " low" : ""}`} aria-hidden="true"><span style={{ width: `${timeLeftPct}%` }} /></div>
+      </header>
 
-      {/* 5. Answer panel */}
-      <section className="card answer-panel">
-        {isCoding ? (
-          <CodeEditor value={answer} onChange={onType} disabled={busy} />
-        ) : (
-          <textarea
-            className="answer-input"
-            aria-label="Your answer"
-            placeholder="Type your answer here, or use the microphone below…"
-            rows={8}
-            disabled={busy}
-            value={answer}
-            onChange={(e) => onType(e.target.value)}
-            onPaste={(e) => e.preventDefault()}
-          />
-        )}
-        {inputMode === "voice" && !isCoding && <p className="hint">Transcribed from voice — you can edit before submitting.</p>}
-        {speech.problem === "unsupported" && !isCoding && <p className="hint">Voice isn't supported in this browser — please type.</p>}
-        {speech.problem === "denied" && !isCoding && <p className="hint">Microphone access was lost — please continue by typing your answer.</p>}
-        {error && <p className="error-text" role="alert">{error}</p>}
-        <div className="controls-row">
-          {!isCoding && speech.problem !== "unsupported" && (
-            speech.recording
-              ? <button className="btn danger" onClick={stopRecording} disabled={busy}><span className="rec-dot" aria-hidden="true" /> Stop recording</button>
-              : <button className="btn secondary" onClick={() => speech.start(answer)} disabled={busy || speech.problem === "denied"}>🎙 Answer by voice</button>
-          )}
-          <span style={{ flex: 1 }} />
-          <button className="btn" disabled={busy || !answer.trim()} onClick={() => void submit()}>{busy ? "Submitting…" : isLastQuestion ? "Submit & finish" : "Submit answer"}</button>
-        </div>
-      </section>
+      <div className="session-body">
+        <aside className="rail" aria-label="Your progress">
+          <SelfView videoRef={videoRef} cameraError={proctor.cameraError} name={profile?.name} />
 
-      {/* 7. History */}
-      {history.length > 0 && (
-        <section className="history">
-          <button className="btn ghost small" aria-expanded={showHistory} onClick={() => setShowHistory(!showHistory)}>
-            {showHistory ? "Hide" : "Show"} previous answers ({history.length})
-          </button>
-          {showHistory && (
-            <ol className="history-list">
-              {history.map((h) => (
-                <li key={h.id}>
-                  <div className="history-q"><span className="pill">{SECTION_LABELS[h.section as keyof typeof SECTION_LABELS]}</span> {h.question}</div>
-                  <div className="history-a">{h.answer}</div>
+          <ol className="tracker">
+            {interview.plan.map((sp, i) => {
+              const status = i < sectionIdx ? "done" : i === sectionIdx ? "active" : "upcoming";
+              const answered = sp.questions.filter((x) => answeredIds.has(x.id)).length;
+              return (
+                <li key={sp.section} className={`tracker-section ${status}`}>
+                  <div className="tracker-head">
+                    <span className="tracker-name">
+                      {status === "done" && <IconCheck size={14} />}
+                      {SECTION_LABELS[sp.section]}
+                    </span>
+                    <span className="tracker-count">
+                      {answered} / {sp.questions.length}
+                      <span className="visually-hidden"> answered{status === "done" ? ", section submitted" : status === "active" ? ", in progress" : ", upcoming"}</span>
+                    </span>
+                  </div>
+                  <div className="marks" aria-hidden="true">
+                    {sp.questions.map((x) => {
+                      const state = answeredIds.has(x.id) ? "answered" : x.id === q.id ? "current" : status === "done" ? "skipped" : "";
+                      return <span key={x.id} className={`mark ${state}`} />;
+                    })}
+                  </div>
                 </li>
-              ))}
-            </ol>
-          )}
-        </section>
-      )}
+              );
+            })}
+          </ol>
 
-      {/* 8. Submit-section confirm */}
+          <div className="rail-submit">
+            <button className="btn secondary full" disabled={busy} onClick={() => setConfirmSkip(true)}>
+              {isLastSection ? "Submit section & finish" : `Submit ${sectionName}`}
+            </button>
+            <p className="hint">Skips the {remainingInSection} question{remainingInSection === 1 ? "" : "s"} left in this section.</p>
+          </div>
+        </aside>
+
+        <main className="question">
+          <p className="q-meta tabular">Question {q.index} of {section.questions.length}</p>
+          <h1 className="q-prompt">{q.prompt}</h1>
+
+          <div ref={composerRef} className={`composer${speech.recording ? " recording" : ""}`} onKeyDown={onComposerKey}>
+            {isCoding ? (
+              <CodeEditor value={answer} onChange={onType} disabled={busy} />
+            ) : (
+              <textarea
+                className="answer-input"
+                aria-label="Your answer"
+                placeholder="Type your answer here, or use the microphone below…"
+                rows={10}
+                disabled={busy}
+                value={answer}
+                onChange={(e) => onType(e.target.value)}
+                onPaste={(e) => e.preventDefault()}
+              />
+            )}
+            <div className="composer-bar">
+              {!isCoding && speech.problem !== "unsupported" && (
+                speech.recording ? (
+                  <>
+                    <button className="btn danger small" onClick={stopRecording} disabled={busy}><span className="rec-dot" aria-hidden="true" />Stop recording</button>
+                    <span className="listening" aria-live="polite">Listening…</span>
+                  </>
+                ) : (
+                  <button className="btn secondary small" onClick={() => speech.start(answer)} disabled={busy || speech.problem === "denied"}><IconMic />Answer by voice</button>
+                )
+              )}
+              <span className="composer-spacer" />
+              <span className="composer-meta">
+                <span className="tabular">{size}</span>
+                <span className="shortcut-hint" aria-hidden="true"><kbd>{IS_MAC ? "⌘" : "Ctrl"}</kbd> <kbd>Enter</kbd></span>
+              </span>
+              <button className="btn" disabled={busy || !trimmed} onClick={() => void submit()} aria-keyshortcuts={IS_MAC ? "Meta+Enter" : "Control+Enter"}>
+                {busy ? "Submitting…" : isLastQuestion ? "Submit & finish" : "Submit answer"}
+              </button>
+            </div>
+          </div>
+
+          <div className="composer-notes">
+            {inputMode === "voice" && !isCoding && <p className="hint">Transcribed from voice — you can edit before submitting.</p>}
+            {speech.problem === "unsupported" && !isCoding && <p className="hint">Voice isn't supported in this browser — please type.</p>}
+            {speech.problem === "denied" && !isCoding && <p className="hint">Microphone access was lost — please continue by typing your answer.</p>}
+            {error && <p className="error-text" role="alert">{error}</p>}
+          </div>
+
+          {history.length > 0 && (
+            <section className="history">
+              <button className="history-toggle" aria-expanded={showHistory} aria-controls="history-list" onClick={() => setShowHistory(!showHistory)}>
+                {showHistory ? "Hide" : "Show"} previous answers ({history.length})
+                <IconChevronDown />
+              </button>
+              {showHistory && (
+                <ol id="history-list" className="history-list">
+                  {history.map((h) => (
+                    <li key={h.id}>
+                      <div className="history-q"><small>{SECTION_LABELS[h.section as keyof typeof SECTION_LABELS]}</small>{h.question}</div>
+                      <div className="history-a">{h.answer}</div>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
+          )}
+        </main>
+      </div>
+
       {confirmSkip && (
         <div className="modal-backdrop">
-          <div className="card modal" role="dialog" aria-modal="true" aria-labelledby="skip-title">
-            <h2 id="skip-title" style={{ fontSize: 18 }}>{isLastSection ? "Finish the interview?" : `Submit ${SECTION_LABELS[section.section]}?`}</h2>
+          <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="skip-title">
+            <h2 id="skip-title">{isLastSection ? "Finish the interview?" : `Submit ${sectionName}?`}</h2>
             <p>
               {isLastSection
                 ? `This is the last section — submitting it now will end the interview, skipping the remaining ${remainingInSection} question(s) in it. This can't be undone.`
-                : `Submit ${SECTION_LABELS[section.section]} now? The remaining ${remainingInSection} question(s) in this section will be skipped and can't be answered later.`}
+                : `Submit ${sectionName} now? The remaining ${remainingInSection} question(s) in this section will be skipped and can't be answered later.`}
             </p>
-            <div className="modal-actions">
+            <div className="dialog-actions">
               <button className="btn secondary" autoFocus onClick={() => setConfirmSkip(false)}>Keep answering</button>
               <button className="btn danger" onClick={() => void doSkip()}>{isLastSection ? "Submit & finish" : "Submit section"}</button>
             </div>
@@ -272,7 +334,6 @@ function InterviewScreen({ interview }: { interview: InterviewState }) {
         </div>
       )}
 
-      <SelfView videoRef={videoRef} cameraError={proctor.cameraError} />
       <Banners p={proctor} />
       <BlockingOverlay p={proctor} />
     </div>

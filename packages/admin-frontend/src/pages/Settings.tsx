@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { IconCheck, IconX } from "../components/Icons";
 import { useToast } from "../components/Toast";
 import { api, errorMessage } from "../lib/api";
 import { fmtDateTime } from "../lib/format";
@@ -58,9 +59,9 @@ export default function Settings() {
         <h2>Gemini API key</h2>
         <p style={{ marginTop: 0 }}>
           {!status ? <span className="muted">Loading…</span>
-            : status.isSet ? <><span className="pill ok">✓ Configured</span> <span className="mono">{status.maskedKey}</span> <span className="muted">— set by {status.updatedByName} on {fmtDateTime(status.updatedAt)}</span></>
+            : status.isSet ? <><span className="pill ok"><IconCheck size={12} />Configured</span> <span className="mono">{status.maskedKey}</span> <span className="muted">— set by {status.updatedByName} on {fmtDateTime(status.updatedAt)}</span></>
             : status.usingEnvFallback ? <span className="pill warn">Using the .env key — not yet admin-managed</span>
-            : <span className="pill err">✕ No Gemini API key configured anywhere</span>}
+            : <span className="pill err"><IconX size={12} />No Gemini API key configured anywhere</span>}
         </p>
         <div className="form-field" style={{ marginBottom: 12 }}>
           <label htmlFor="gemini-key">{status?.isSet ? "Replace with a new key" : "Paste a Gemini API key"}</label>

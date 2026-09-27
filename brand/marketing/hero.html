@@ -1,0 +1,165 @@
+<!doctype html>
+<!--
+  GapVise AI — marketing hero banner (source).
+  Render: open in a browser at 1920×1080, or add ?format=og for the 1200×630 social card.
+  Exported PNGs live next to this file.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>GapVise AI — Hire on evidence, not hunches</title>
+<style>
+  @font-face {
+    font-family: "Plus Jakarta Sans";
+    src: url("fonts/plus-jakarta-sans-latin-wght-normal.woff2") format("woff2");
+    font-weight: 200 800;
+  }
+  :root {
+    --navy: #020617;
+    --blue: #2563eb;
+    --blue-light: #93c5fd;
+    --orange: #fb923c;
+    --orange-strong: #ea580c;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    width: 1920px; height: 1080px; overflow: hidden;
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(900px 600px at 78% 30%, rgb(37 99 235 / 0.35), transparent 65%),
+      radial-gradient(700px 500px at 10% 100%, rgb(251 146 60 / 0.16), transparent 60%),
+      radial-gradient(800px 600px at 0% 0%, rgb(59 130 246 / 0.18), transparent 60%),
+      var(--navy);
+    -webkit-font-smoothing: antialiased;
+  }
+  /* faint grid for depth */
+  body::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: linear-gradient(rgb(148 163 184 / 0.06) 1px, transparent 1px), linear-gradient(90deg, rgb(148 163 184 / 0.06) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse at 60% 40%, black 30%, transparent 75%);
+  }
+  .wrap { position: relative; display: grid; grid-template-columns: 820px 1fr; gap: 40px; align-items: center; height: 100%; padding: 0 0 0 120px; }
+  .lockup { display: flex; align-items: center; gap: 14px; font-weight: 800; font-size: 30px; letter-spacing: -0.02em; }
+  .lockup b { color: var(--blue-light); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px; margin-top: 56px;
+    padding: 8px 16px; border-radius: 999px; font-weight: 600; font-size: 18px; color: #bfdbfe;
+    background: rgb(37 99 235 / 0.16); border: 1px solid rgb(147 197 253 / 0.28);
+  }
+  .eyebrow i { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); }
+  h1 { font-size: 84px; line-height: 1.02; letter-spacing: -0.035em; font-weight: 800; margin: 28px 0 0; }
+  h1 em { font-style: normal; position: relative; white-space: nowrap; color: #fff; }
+  h1 em::after {
+    content: ""; position: absolute; left: 2px; right: 2px; bottom: 6px; height: 12px; z-index: -1;
+    background: linear-gradient(90deg, var(--orange-strong), var(--orange)); border-radius: 6px; opacity: 0.9;
+  }
+  h1 .punct { margin-left: -0.08em; }
+  .sub { font-size: 26px; line-height: 1.5; color: #cbd5e1; margin: 28px 0 0; max-width: 680px; }
+  .ctas { display: flex; gap: 16px; margin-top: 44px; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; height: 64px; padding: 0 30px; border-radius: 12px; font-weight: 700; font-size: 21px; }
+  .btn.primary { background: var(--orange-strong); color: #fff; box-shadow: 0 10px 30px rgb(234 88 12 / 0.35); }
+  .btn.ghost { border: 1px solid rgb(148 163 184 / 0.35); color: var(--text); background: rgb(15 23 42 / 0.5); }
+  .trust { display: flex; gap: 24px; margin-top: 48px; color: var(--muted); font-size: 17px; white-space: nowrap; font-weight: 500; }
+  .trust span { display: inline-flex; align-items: center; gap: 8px; }
+  .trust svg { color: #4ade80; }
+
+  /* Product visual */
+  .visual { position: relative; height: 760px; }
+  .browser {
+    position: absolute; left: 0; top: 0; width: 1180px; border-radius: 16px; overflow: hidden;
+    background: #0f172a; border: 1px solid rgb(148 163 184 / 0.22);
+    box-shadow: 0 40px 100px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(255 255 255 / 0.04) inset;
+  }
+  .browser-bar { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 16px; background: #111827; border-bottom: 1px solid rgb(148 163 184 / 0.15); }
+  .browser-bar i { width: 12px; height: 12px; border-radius: 50%; background: #334155; }
+  .browser-bar .url { margin-left: 18px; height: 24px; flex: 0 1 420px; border-radius: 6px; background: #1e293b; color: #64748b; font-size: 13px; display: flex; align-items: center; padding: 0 12px; }
+  .browser img { display: block; width: 100%; }
+  .glass {
+    position: absolute; border-radius: 18px; padding: 22px 24px;
+    background: rgb(15 23 42 / 0.55); backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgb(255 255 255 / 0.16);
+    box-shadow: 0 24px 60px rgb(0 0 0 / 0.45);
+  }
+  .score { left: -60px; top: 560px; width: 280px; }
+  .label { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .big { font-size: 56px; font-weight: 800; letter-spacing: -0.03em; margin-top: 6px; }
+  .big small { font-size: 22px; color: var(--muted); font-weight: 600; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 12px; border-radius: 999px; font-size: 15px; font-weight: 700; }
+  .pill.ok { background: rgb(22 163 74 / 0.2); color: #86efac; }
+  .pill.err { background: rgb(220 38 38 / 0.2); color: #fca5a5; }
+  .gap { right: 40px; top: 600px; width: 340px; }
+  .row { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; font-size: 17px; font-weight: 600; }
+  .row .pill { margin-top: 0; font-size: 13px; }
+
+  /* ---------- Social card (1200×630) ---------- */
+  body.og { width: 1200px; height: 630px; }
+  body.og .wrap { grid-template-columns: 1fr; padding: 64px 72px; align-content: center; }
+  body.og .visual { display: none; }
+  body.og .eyebrow { margin-top: 40px; font-size: 16px; }
+  body.og h1 { font-size: 72px; }
+  body.og .sub { font-size: 24px; max-width: 900px; }
+  body.og .ctas, body.og .trust { display: none; }
+  body.og .og-mark { display: block; }
+  .og-mark { display: none; position: absolute; right: 72px; bottom: 64px; opacity: 0.95; }
+</style>
+</head>
+<body>
+<script>if (new URLSearchParams(location.search).get("format") === "og") document.body.classList.add("og");</script>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gv-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3B82F6"/><stop offset="1" stop-color="#1D4ED8"/></linearGradient>
+    <symbol id="gv-mark" viewBox="0 0 64 64">
+      <rect width="64" height="64" rx="16" fill="url(#gv-bg)"/>
+      <path d="M39.42 20.13 A14 14 0 1 0 45.69 34.91 H35" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="44.89" cy="26.53" r="3.6" fill="#FB923C"/>
+    </symbol>
+    <symbol id="check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <section>
+    <div class="lockup"><svg width="52" height="52"><use href="#gv-mark"/></svg><span>GapVise <b>AI</b></span></div>
+    <div class="eyebrow"><i></i>AI skills assessment for technical hiring</div>
+    <h1>Hire on <em>evidence</em><span class="punct">,</span><br />not hunches<span class="punct">.</span></h1>
+    <p class="sub">Turn any job description into a proctored, AI-scored interview — and every interview into a defensible skill-gap report.</p>
+    <div class="ctas">
+      <span class="btn primary">Book a demo →</span>
+      <span class="btn ghost">See how it works</span>
+    </div>
+    <div class="trust">
+      <span><svg width="18" height="18"><use href="#check"/></svg>108 calibrated questions per role</span>
+      <span><svg width="18" height="18"><use href="#check"/></svg>Scores computed, not guessed</span>
+      <span><svg width="18" height="18"><use href="#check"/></svg>No video stored</span>
+    </div>
+  </section>
+
+  <section class="visual" aria-hidden="true">
+    <div class="browser">
+      <div class="browser-bar"><i></i><i></i><i></i><span class="url">app.gapvise.ai/admin/overview</span></div>
+      <img src="product-overview.png" alt="" />
+    </div>
+    <div class="glass score">
+      <div class="label">Overall assessment</div>
+      <div class="big">7.8 <small>/ 10</small></div>
+      <span class="pill ok">Category 1</span>
+    </div>
+    <div class="glass gap">
+      <div class="label">JD skill gap</div>
+      <div class="row">Java 17 <span class="pill ok">L3 · Met</span></div>
+      <div class="row">Spring Boot <span class="pill ok">L3 · Met</span></div>
+      <div class="row">Microservices <span class="pill ok">L2 · Met</span></div>
+      <div class="row">SQL (PostgreSQL) <span class="pill err">L1 · Gap</span></div>
+    </div>
+  </section>
+</div>
+
+<svg class="og-mark" width="120" height="120"><use href="#gv-mark"/></svg>
+</body>
+</html>

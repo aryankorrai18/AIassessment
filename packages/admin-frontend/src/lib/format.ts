@@ -4,6 +4,10 @@ export const fmtDateTime = (ms: number | null | undefined) =>
 export const fmtDateTimeSeconds = (ms: number | null | undefined) =>
   ms ? new Date(ms).toLocaleString(undefined, { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—";
 
+/** Compact date + time for dense table cells, e.g. "Sep 23, 12:09 AM". */
+export const fmtShort = (ms: number | null | undefined) =>
+  ms ? new Date(ms).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "—";
+
 export const fmtDate = (ms: number | null | undefined) => (ms ? new Date(ms).toLocaleDateString() : "—");
 
 /** The interview score is stored 0–100 but always displayed out of 10. */

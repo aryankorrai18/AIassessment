@@ -1,40 +1,66 @@
+/* Sign-in: the ink panel is fixed in both themes — it is the brand, not the theme. */
 .login-split {
+  --ink: #0b1020;
+  --ink-text: #e9edf7;
+  --ink-muted: #b6c2d4;
+  --ink-line: #242e4d;
+  --ink-accent: #a5bfff;
   display: grid;
   grid-template-columns: 1.1fr 1fr;
   min-height: 100%;
 }
 .login-hero {
-  background: linear-gradient(160deg, #1d3a8f, #2f5bd3 60%, #4f7be8);
-  color: #fff;
-  padding: 64px 56px;
+  background: var(--ink);
+  color: var(--ink-text);
+  padding: 64px 64px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 24px;
+  gap: 36px;
 }
 .login-brand {
-  font-size: 18px;
+  font-size: 20px;
+}
+.login-hero .login-brand b {
+  color: var(--ink-accent);
 }
 .login-hero h1 {
-  font-size: 30px;
-  max-width: 520px;
-  line-height: 1.25;
+  font-family: var(--font-serif);
+  font-size: 48px;
+  font-weight: 450;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  max-width: 560px;
 }
 .login-features {
   list-style: none;
-  padding: 0;
+  padding: 24px 0 0;
   margin: 0;
   display: grid;
-  gap: 14px;
-  max-width: 520px;
-  color: rgba(255, 255, 255, 0.88);
+  gap: 18px;
+  max-width: 540px;
+  color: var(--ink-muted);
+  border-top: 1px solid var(--ink-line);
 }
 .login-features li {
-  padding-left: 16px;
-  border-left: 3px solid rgba(255, 255, 255, 0.4);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.feature-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: var(--ink-accent);
+  border: 1px solid var(--ink-line);
+  margin-top: 1px;
 }
 .login-features strong {
-  color: #fff;
+  color: var(--ink-text);
+  font-weight: 600;
 }
 .login-panel {
   display: grid;
@@ -42,25 +68,30 @@
   padding: 32px 16px;
 }
 .login-card {
-  width: min(380px, 100%);
+  width: min(400px, 100%);
   display: grid;
-  gap: 14px;
-  padding: 28px;
+  gap: 18px;
+  padding: 36px;
   margin: 0;
 }
 .login-card h2 {
-  font-size: 20px;
+  font-size: 22px;
+  font-weight: 700;
   margin: 0;
 }
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .login-split {
     grid-template-columns: 1fr;
   }
   .login-hero {
     padding: 36px 20px;
+    gap: 20px;
   }
   .login-hero h1 {
-    font-size: 22px;
+    font-size: 30px;
+  }
+  .login-features {
+    display: none;
   }
 }
 
@@ -69,6 +100,9 @@
   display: grid;
   place-items: center;
   padding: 32px 16px;
+}
+.auth-center .brand-name b {
+  color: var(--accent-text);
 }
 .label-row {
   display: flex;

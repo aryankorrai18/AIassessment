@@ -34,7 +34,7 @@ export default function ResetPassword() {
   return (
     <div className="auth-center">
       <form className="card login-card" onSubmit={submit} noValidate>
-        <div className="brand-name"><IconLogo /> GapVise AI</div>
+        <div className="brand-name"><IconLogo size={32} /> <span>GapVise <b>AI</b></span></div>
         <h2>Choose a new password</h2>
         {!token ? (
           <p className="callout err" style={{ margin: 0 }}>This page needs the link from your reset email. <Link to="/admin/forgot-password">Request a new link</Link>.</p>

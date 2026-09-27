@@ -117,12 +117,15 @@ router.post("/import", async (req, res) => {
 router.get("/", async (_req, res) => {
   const [candidates, interviews] = await Promise.all([
     candidatesCol().orderBy("createdAt", "desc").get(),
-    interviewsCol().select("candidateId", "status").get(),
+    interviewsCol().select("candidateId", "status", "jdRef").get(),
   ]);
   const statusesByCandidate = new Map<string, InterviewStatus[]>();
+  // Every JD a candidate has an interview for — Candidate.jdRef only holds the latest one.
+  const jdRefsByCandidate = new Map<string, Set<string>>();
   for (const d of interviews.docs) {
-    const { candidateId, status } = d.data();
+    const { candidateId, status, jdRef } = d.data();
     statusesByCandidate.set(candidateId, [...(statusesByCandidate.get(candidateId) ?? []), status]);
+    if (jdRef) jdRefsByCandidate.set(candidateId, (jdRefsByCandidate.get(candidateId) ?? new Set()).add(jdRef));
   }
   res.json(candidates.docs.map((d) => {
     const statuses = statusesByCandidate.get(d.id) ?? [];
@@ -132,6 +135,7 @@ router.get("/", async (_req, res) => {
       createdAt: toMillis(d.data().createdAt),
       interviewStatus: highestInterviewStatus(statuses),
       interviewCount: statuses.length,
+      jdRefs: [...(jdRefsByCandidate.get(d.id) ?? [])].sort(),
     };
   }));
 });

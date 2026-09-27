@@ -27,7 +27,7 @@ export default function ForgotPassword() {
   return (
     <div className="auth-center">
       <form className="card login-card" onSubmit={submit} noValidate>
-        <div className="brand-name"><IconLogo /> GapVise AI</div>
+        <div className="brand-name"><IconLogo size={32} /> <span>GapVise <b>AI</b></span></div>
         <h2>Reset your password</h2>
         {sent ? (
           <>

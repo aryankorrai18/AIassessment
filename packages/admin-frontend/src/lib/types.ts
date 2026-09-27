@@ -65,6 +65,7 @@ export interface CandidateRow {
   createdAt: number | null;
   interviewStatus: InterviewStatus | null;
   interviewCount: number;
+  jdRefs: string[]; // every JD this candidate has an interview for (jdRef holds only the latest)
 }
 
 export interface QuestionRow {

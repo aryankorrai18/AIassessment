@@ -1,4 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { IconSearch } from "../components/Icons";
 import { useToast } from "../components/Toast";
 import { api, errorMessage } from "../lib/api";
 import { defaultWeightForLevel } from "../lib/format";
@@ -345,6 +347,12 @@ function ExistingJds({ jds, onEdit, reload }: { jds: JdListRow[] | null; onEdit:
   const toast = useToast();
   const [open, setOpen] = useState<string | null>(null);
   const [details, setDetails] = useState<Record<string, JdDetail>>({});
+  const [search, setSearch] = useState("");
+  const shown = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q || !jds) return jds;
+    return jds.filter((j) => j.title.toLowerCase().includes(q) || j.skillCluster.toLowerCase().includes(q));
+  }, [jds, search]);
 
   const toggle = async (jdRef: string) => {
     if (open === jdRef) return setOpen(null);
@@ -372,14 +380,28 @@ function ExistingJds({ jds, onEdit, reload }: { jds: JdListRow[] | null; onEdit:
 
   return (
     <div className="card">
-      <h2>Existing JDs</h2>
+      <div className="card-header">
+        <h2>Existing JDs</h2>
+        {jds !== null && jds.length > 0 && (
+          <div className="toolbar" style={{ margin: 0 }}>
+            <div className="search-field">
+              <IconSearch />
+              <input type="search" placeholder="Search by title or skill cluster…" aria-label="Search JDs" value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <span className="muted" aria-live="polite">
+              {search.trim() ? `${shown?.length ?? 0} of ${jds.length}` : `${jds.length} ${jds.length === 1 ? "JD" : "JDs"}`}
+            </span>
+          </div>
+        )}
+      </div>
       <div className="table-scroll">
         <table className="data-table">
           <thead><tr><th>Title</th><th>Skill Cluster</th><th>Coding?</th><th>Question Bank</th><th /></tr></thead>
           <tbody>
             {jds === null && <EmptyRow colSpan={5}>Loading…</EmptyRow>}
             {jds?.length === 0 && <EmptyRow colSpan={5}>No JDs yet — add one above.</EmptyRow>}
-            {jds?.map((jd) => (
+            {jds !== null && jds.length > 0 && shown?.length === 0 && <EmptyRow colSpan={5}>No JDs match “{search.trim()}”.</EmptyRow>}
+            {shown?.map((jd) => (
               <Fragment key={jd.jdRef}>
                 <tr>
                   <td><strong>{jd.title}</strong></td>
@@ -388,8 +410,9 @@ function ExistingJds({ jds, onEdit, reload }: { jds: JdListRow[] | null; onEdit:
                   <td>{jd.hasQuestions ? <span className="pill ok">{jd.questionCount} questions</span> : <span className="pill warn">Not generated</span>}</td>
                   <td className="actions">
                     <button className="btn secondary small" aria-expanded={open === jd.jdRef} onClick={() => void toggle(jd.jdRef)}>{open === jd.jdRef ? "Hide" : "View"}</button>
+                    <Link className="btn secondary small" to={`/admin/candidates?jd=${encodeURIComponent(jd.jdRef)}`} aria-label={`Candidates for ${jd.title}`}>Candidates</Link>
                     <button className="btn secondary small" onClick={() => onEdit(jd.jdRef)}>Edit</button>
-                    <button className="btn danger small" onClick={() => void remove(jd)}>Delete</button>
+                    <button className="btn danger-ghost small" onClick={() => void remove(jd)}>Delete</button>
                   </td>
                 </tr>
                 {open === jd.jdRef && (

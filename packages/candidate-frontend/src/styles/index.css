@@ -1,64 +1,215 @@
+/*
+ * Candidate app tokens — the "exam paper" layer of the GapVise design system
+ * (design-system/gapvise-ai/MASTER.md, pages/candidate.md).
+ * Components use these semantic tokens only; never raw hex in component CSS.
+ * Every text/background pair below is checked at >= 4.5:1.
+ */
 :root,
 :root[data-theme="dark"] {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --surface-2: #1c232c;
-  --border: #2b333e;
-  --border-strong: #3b4552;
-  --text: #e6edf3;
-  --text-muted: #9ba7b4;
-  --text-faint: #6b7684;
-  --accent: #6b8ff0;
-  --accent-hover: #86a4f5;
-  --accent-soft: #1b2748;
-  --ok: #4fc26b;
-  --ok-soft: #12301b;
-  --warn: #e3b341;
-  --warn-soft: #33290f;
-  --err: #f47067;
-  --err-soft: #3b1717;
-  --focus: 0 0 0 3px rgba(107, 143, 240, 0.5);
+  --bg: #0b1020;
+  --surface: #111830;
+  --surface-2: #18203b;
+  --surface-hover: #1b2444;
+  --border: #242e4d;
+  --border-strong: #34406a;
+  --text: #e9edf7;
+  --text-muted: #a3adc7;
+  --text-faint: #8590ae;
+  --accent: #2563eb;
+  --accent-hover: #3b74f0;
+  --accent-soft: #16224a;
+  --accent-text: #a5bfff;
+  --on-accent: #ffffff;
+  /* The orange of the logo's dot: time pressure and nothing else. */
+  --signal: #fb923c;
+  --signal-soft: #3a2210;
+  --ok: #5ed39a;
+  --ok-soft: #0f2e22;
+  --warn: #fbbf24;
+  --err: #ff9c9c;
+  --err-soft: #3d1518;
+  --danger: #dc2626;
+  --danger-hover: #ef4444;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 24px 60px rgb(2 6 23 / 0.6);
+  --scrim: rgb(5 8 18 / 0.78);
+  --focus: 0 0 0 3px rgb(165 191 255 / 0.45);
   color-scheme: dark;
 }
 
 :root[data-theme="light"] {
-  --bg: #f5f7fa;
+  --bg: #f4f6fa;
   --surface: #ffffff;
-  --surface-2: #eef1f5;
-  --border: #dbe0e7;
-  --border-strong: #c3cad4;
-  --text: #1b2028;
-  --text-muted: #5b6471;
-  --text-faint: #8a93a0;
-  --accent: #2f5bd3;
-  --accent-hover: #2549b3;
-  --accent-soft: #e6ecfb;
-  --ok: #1a7f37;
-  --ok-soft: #dcf3e2;
-  --warn: #9a6300;
-  --warn-soft: #fcefcf;
-  --err: #c92a2a;
-  --err-soft: #fde2e2;
-  --focus: 0 0 0 3px rgba(47, 91, 211, 0.35);
+  --surface-2: #eef1f7;
+  --surface-hover: #f7f9fc;
+  --border: #e1e6ef;
+  --border-strong: #c7cfdd;
+  --text: #10162e;
+  --text-muted: #4a5470;
+  --text-faint: #5e6883;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-soft: #e9effe;
+  --accent-text: #1d4ed8;
+  --on-accent: #ffffff;
+  --signal: #c2410c;
+  --signal-soft: #fff0e6;
+  --ok: #166534;
+  --ok-soft: #e3f6ea;
+  --warn: #b45309;
+  --err: #b91c1c;
+  --err-soft: #fdecec;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --shadow-sm: 0 1px 2px rgb(16 22 46 / 0.06);
+  --shadow-lg: 0 24px 60px rgb(16 22 46 / 0.18);
+  --scrim: rgb(16 22 46 / 0.55);
+  --focus: 0 0 0 3px rgb(37 99 235 / 0.35);
   color-scheme: light;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
-html, body, #root { height: 100%; }
+:root {
+  /* Type — all self-hosted (no font CDN). Serif for questions and page titles,
+     sans for the interface, mono only inside the code editor. */
+  --font-sans: "Plus Jakarta Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-serif: "Newsreader Variable", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Consolas, monospace;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 17px;
+  --text-xl: 22px;
+  --text-2xl: 30px;
+  --text-3xl: 40px;
+  /* Spacing (4px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  /* Shape & motion — radius follows hierarchy: controls < panels < sheets */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --control-h: 44px;
+  --control-h-sm: 36px;
+  --topbar-h: 64px;
+  /* Proctoring banners keep one amber in both themes so they read as the same alert. */
+  --banner-bg: #fcd34d;
+  --banner-text: #1c1400;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-size: 15px;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
-button, input, select, textarea { font: inherit; color: inherit; }
-h1, h2, h3 { margin: 0; line-height: 1.25; }
-a { color: var(--accent); }
-:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 6px; }
-.mono { font-family: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace; }
-.muted { color: var(--text-muted); }
-.faint { color: var(--text-faint); }
-.tabular { font-variant-numeric: tabular-nums; }
+
+a {
+  color: var(--accent-text);
+  text-underline-offset: 3px;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button,
+label.checkbox {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+kbd {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  color: var(--text-muted);
+}
+
+.icon {
+  flex: none;
+  vertical-align: -0.15em;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+.faint {
+  color: var(--text-faint);
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

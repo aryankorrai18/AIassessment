@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { IconAlert, IconCheck, IconDownload, IconFlag, IconX, IconSearch } from "../components/Icons";
 import { useToast } from "../components/Toast";
 import { api, errorMessage } from "../lib/api";
 import { downloadWorkbook } from "../lib/excel";
@@ -13,6 +14,13 @@ const DOWNLOAD_GAP_MS = 300;
 const COLS = 8;
 
 const isScoring = (r: ResultRow) => r.reportStatus === "PENDING" || r.reportStatus === "PROCESSING";
+
+/** Groups integrity events by type, most frequent first, each with its timestamps in order. */
+function groupEvents(events: { type: string; occurredAt: number }[]) {
+  const byType = new Map<string, number[]>();
+  for (const e of events) byType.set(e.type, [...(byType.get(e.type) ?? []), e.occurredAt]);
+  return [...byType].map(([type, times]) => ({ type, times: times.sort((a, b) => a - b) })).sort((a, b) => b.times.length - a.times.length);
+}
 
 export default function Results() {
   const toast = useToast();
@@ -49,7 +57,7 @@ export default function Results() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return all.filter((r) =>
-      (!q || r.candidateName.toLowerCase().includes(q) || r.email.includes(q) || (r.refId ?? "").toLowerCase().includes(q)) &&
+      (!q || r.candidateName.toLowerCase().includes(q) || r.email.includes(q) || (r.refId ?? "").toLowerCase().includes(q) || (r.jdTitle ?? "").toLowerCase().includes(q)) &&
       (!cluster || r.cluster === cluster) && (!jd || r.jdTitle === jd) && (!batch || r.batchId === batch) && (!reviewOnly || r.needsReview));
   }, [all, search, cluster, jd, batch, reviewOnly]);
   const reviewCount = all.filter((r) => r.needsReview).length;
@@ -125,7 +133,7 @@ export default function Results() {
 
       <div className="card">
         <div className="toolbar" style={{ marginBottom: 0 }}>
-          <input type="search" placeholder="Search name, email or reference ID" aria-label="Search results" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="search-field"><IconSearch /><input type="search" placeholder="Search name, email, reference ID or JD…" aria-label="Search results" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
           <select aria-label="Filter by cluster" value={cluster} onChange={(e) => setCluster(e.target.value)}>
             <option value="">All clusters</option>{clusters.map((c) => <option key={c}>{c}</option>)}
           </select>
@@ -182,12 +190,14 @@ function AttemptRows({ row: r, nested }: { row: ResultRow; nested?: boolean }) {
           {nested ? <strong>{r.jdTitle ?? "Cluster-only"}</strong> : <><strong>{r.candidateName}</strong><div className="sub-line">{r.email}</div></>}
         </td>
         <td>{nested ? <span className="faint">—</span> : r.jdTitle ?? <span className="faint">cluster-only</span>}</td>
-        <td>{r.status === "COMPLETED" ? "✓ Completed" : r.status === "EVAL_FAILED" ? "✕ Eval Failed" : "⚠ No Show"}</td>
+        <td>{r.status === "COMPLETED" ? <span className="status-text ok"><IconCheck size={14} />Completed</span>
+            : r.status === "EVAL_FAILED" ? <span className="status-text err"><IconX size={14} />Eval Failed</span>
+            : <span className="status-text warn"><IconAlert size={14} />No Show</span>}</td>
         <td className="tabular">{r.status === "NO_SHOW" ? "—" : isScoring(r) ? "Scoring…" : score10(r.score)}</td>
         <td><CategoryPill category={r.category} /></td>
         <td className="tabular">
           {r.status === "NO_SHOW" ? "—" : <>{r.integrityScore}/100 <span className="muted">({r.violationCount})</span></>}
-          {r.needsReview && <div className="error-text" style={{ fontSize: 12 }}>🚩 Needs review</div>}
+          {r.needsReview && <div className="status-text err" style={{ fontSize: 12, marginTop: 2 }}><IconFlag size={12} />Needs review</div>}
         </td>
         <td>{fmtDateTime(r.completedAt)}</td>
         <td className="actions">
@@ -217,7 +227,7 @@ function ResultDetailView({ row }: { row: ResultRow }) {
   return (
     <div className="result-detail">
       <div>
-        {d.reportStatus === "COMPLETED" && row.pdfPath && <a className="btn small" href={row.pdfPath} target="_blank" rel="noreferrer">Download PDF Report</a>}
+        {d.reportStatus === "COMPLETED" && row.pdfPath && <a className="btn small" href={row.pdfPath} target="_blank" rel="noreferrer"><IconDownload />Download PDF Report</a>}
         {d.reportStatus === "FAILED" && <div className="callout err" style={{ marginBottom: 0 }}>Evaluation failed: {d.lastError ?? "unknown error"}. Use "Retry stuck reports" to re-drive it.</div>}
         {(d.reportStatus === "PENDING" || d.reportStatus === "PROCESSING") && <div className="callout" style={{ marginBottom: 0 }}>Scoring is still running — this page refreshes automatically.</div>}
       </div>
@@ -276,7 +286,7 @@ function ResultDetailView({ row }: { row: ResultRow }) {
               {ev.skillGap.map((g) => (
                 <tr key={g.skill}>
                   <td>{g.skill}</td><td>{g.expectedLevel}</td><td>{g.demonstratedLevel}</td>
-                  <td>{g.demonstratedLevel === "Not Assessed" ? <span className="faint">— Not assessed</span> : g.met ? <span className="pill ok">✓ Met</span> : <span className="pill err">✕ Gap</span>}</td>
+                  <td>{g.demonstratedLevel === "Not Assessed" ? <span className="faint">— Not assessed</span> : g.met ? <span className="pill ok"><IconCheck size={12} />Met</span> : <span className="pill err"><IconX size={12} />Gap</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -287,15 +297,40 @@ function ResultDetailView({ row }: { row: ResultRow }) {
       <div>
         <div className="detail-label">Integrity evidence</div>
         {d.violations.length === 0 ? <span className="faint">No violations recorded.</span> : (
-          <div className="evidence-grid">
-            {d.violations.map((v) => (
-              <div key={v.id} className="evidence-card">
-                {v.snapshot ? <img src={v.snapshot} alt={`Snapshot: ${VIOLATION_LABELS[v.type] ?? v.type}`} /> : <div className="evidence-empty">No snapshot</div>}
-                <div className="evidence-label">{VIOLATION_LABELS[v.type] ?? v.type}</div>
-                <div className="sub-line tabular">{fmtDateTimeSeconds(v.occurredAt)}</div>
+          <>
+            {/* Snapshot cards only where there's an image; everything else as a compact timeline. */}
+            {d.violations.some((v) => v.snapshot) && (
+              <div className="evidence-grid">
+                {d.violations.filter((v) => v.snapshot).map((v) => (
+                  <div key={v.id} className="evidence-card">
+                    <img width={180} height={135} loading="lazy" src={v.snapshot!} alt={`Snapshot: ${VIOLATION_LABELS[v.type] ?? v.type}`} />
+                    <div className="evidence-label">{VIOLATION_LABELS[v.type] ?? v.type}</div>
+                    <div className="sub-line tabular">{fmtDateTimeSeconds(v.occurredAt)}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+            {/* Repeated events of one type are grouped: a count and time range, with every timestamp one click away. */}
+            <ul className="evidence-list">
+              {groupEvents(d.violations.filter((v) => !v.snapshot)).map((g) => (
+                <li key={g.type}>
+                  <details className="evidence-group">
+                    <summary>
+                      <IconAlert size={14} />
+                      <span className="evidence-label">{VIOLATION_LABELS[g.type] ?? g.type}</span>
+                      <span className="evidence-count tabular">{g.times.length === 1 ? "once" : `${g.times.length} times`}</span>
+                      <span className="sub-line tabular">
+                        {g.times.length === 1 ? fmtDateTimeSeconds(g.times[0]) : `${fmtDateTimeSeconds(g.times[0])} to ${fmtDateTimeSeconds(g.times[g.times.length - 1])}`}
+                      </span>
+                    </summary>
+                    <ol className="evidence-times tabular">
+                      {g.times.map((t, i) => <li key={i}>{fmtDateTimeSeconds(t)}</li>)}
+                    </ol>
+                  </details>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
 
@@ -303,7 +338,9 @@ function ResultDetailView({ row }: { row: ResultRow }) {
         <div className="detail-label">Transcript</div>
         {d.transcript.length === 0 ? <span className="faint">No transcript (interview never started).</span> : d.transcript.map((t, i) => (
           <div key={i} className="transcript-entry" style={t.reached ? undefined : { opacity: 0.7 }}>
-            <div className="transcript-meta">{t.section} · {t.reached ? t.inputMode ?? "typed" : "not reached"}{t.skill ? ` · tests: ${t.skill}` : ""}</div>
+            <div className="transcript-meta">
+              Question {i + 1} · {capitalize(t.section)} · {t.reached ? (t.inputMode === "voice" ? "Spoken answer" : "Typed answer") : "Not reached"}{t.skill ? ` · Skill: ${t.skill}` : ""}
+            </div>
             <div className="transcript-q">{t.question}</div>
             {!t.reached ? <div className="transcript-a"><em>(not reached — interview ended before this question)</em></div>
               : t.answer ? <div className="transcript-a">{t.answer}</div> : <div className="transcript-a"><em>(no answer)</em></div>}
