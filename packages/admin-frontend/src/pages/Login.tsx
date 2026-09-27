@@ -33,16 +33,19 @@ export default function LoginPage() {
     <div className="login-split">
       <section className="login-hero">
         <div className="brand-name login-brand"><IconLogo size={40} /> <span>GapVise <b>AI</b></span></div>
-        <h1>AI-assisted technical interviews, from job description to scored report.</h1>
+        <h1>Every candidate, measured against the job.</h1>
         <ul className="login-features">
-          <li><span className="feature-icon"><IconCheck size={14} /></span><span><strong>Structured from the JD.</strong> Upload a job description; required skills and levels are extracted and a question bank is generated for you.</span></li>
-          <li><span className="feature-icon"><IconCheck size={14} /></span><span><strong>Proctored, one-attempt interviews.</strong> Candidates sign in with a one-time key and are monitored without anything being recorded.</span></li>
-          <li><span className="feature-icon"><IconCheck size={14} /></span><span><strong>Defensible scoring.</strong> Every answer is scored individually; overall, section and skill-gap results are computed, not guessed.</span></li>
+          <li><span className="feature-icon"><IconCheck size={14} /></span><span><strong>Built from the job description.</strong> Skills and levels are extracted, and a 108-question bank is written for the role.</span></li>
+          <li><span className="feature-icon"><IconCheck size={14} /></span><span><strong>Proctored without recording.</strong> One attempt per invite, checked in the browser, with nothing filmed.</span></li>
+          <li><span className="feature-icon"><IconCheck size={14} /></span><span><strong>Scores you can explain.</strong> Each answer is scored; every total and skill gap is computed from those scores.</span></li>
         </ul>
       </section>
       <section className="login-panel">
         <form className="card login-card" onSubmit={submit} noValidate>
-          <h2>Sign in</h2>
+          <div>
+            <h2>Sign in</h2>
+            <p className="muted" style={{ margin: "6px 0 0" }}>Use your GapVise admin account.</p>
+          </div>
           <div className="form-field">
             <label htmlFor="email">Email</label>
             <input id="email" type="text" autoComplete="username" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />

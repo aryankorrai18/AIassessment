@@ -1,12 +1,29 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { IconBan, IconBellOff, IconCamera, IconCheck, IconLock, IconMaximize, IconSkip, IconWifi } from "../components/Icons";
 import { errorMessage } from "../lib/api";
 import { useCandidate } from "../lib/context";
 
 type Perm = "Not requested" | "Granted" | "Denied";
 
-function PermPill({ state }: { state: Perm }) {
-  return <span className={`pill ${state === "Granted" ? "ok" : state === "Denied" ? "err" : ""}`}>{state}</span>;
+function PermTag({ label, state }: { label: string; state: Perm }) {
+  return <span className={`tag ${state === "Granted" ? "ok" : state === "Denied" ? "err" : ""}`}>{label}: {state}</span>;
+}
+
+function Rule({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return <li>{icon}<span>{children}</span></li>;
+}
+
+function Step({ n, complete, title, children }: { n: number; complete: boolean; title: string; children: ReactNode }) {
+  return (
+    <li className={`ready-step${complete ? " complete" : ""}`}>
+      <span className="step-mark" aria-hidden="true">{complete ? <IconCheck size={14} /> : n}</span>
+      <div>
+        <h3>{title}{complete && <span className="visually-hidden"> (done)</span>}</h3>
+        <div className="ready-step-body">{children}</div>
+      </div>
+    </li>
+  );
 }
 
 export default function Instructions() {
@@ -17,16 +34,20 @@ export default function Instructions() {
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A short-lived preview so candidates can check their framing. The interview screen acquires its own stream.
+  const [preview, setPreview] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  const sections = profile?.hasCoding ? 3 : 2;
-  const guidelines: ReactNode[] = [
-    <>Each question may be attempted <strong>only once</strong>; submitted responses are final.</>,
-    <>Copy-paste is strictly prohibited throughout.</>,
-    <>Ensure a stable internet connection.</>,
-    <>Your interview has <em>{sections} sections</em>: Definitions → Scenarios{profile?.hasCoding ? " → Coding" : ""}. Definitions and Scenarios accept voice or typed answers{profile?.hasCoding ? "; Coding is typed" : ""}.</>,
-    <>Close all applications including Outlook and Teams; notifications or pop-ups count as a violation.</>,
-    <>The assessment runs in fullscreen, requested the moment you click Begin; exiting fullscreen is logged as a violation.</>,
-    <>Each section has a <em>Submit section</em> button; remaining questions in that section are skipped and cannot be answered later.</>,
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.srcObject = preview;
+    return () => preview?.getTracks().forEach((t) => t.stop());
+  }, [preview]);
+
+  const hasCoding = !!profile?.hasCoding;
+  const sections = [
+    { name: "Definitions", how: "Explain concepts. Type or speak." },
+    { name: "Scenarios", how: "Work through real situations. Type or speak." },
+    ...(hasCoding ? [{ name: "Coding", how: "Write short solutions. Typed only." }] : []),
   ];
 
   const requestPermissions = async () => {
@@ -35,8 +56,9 @@ export default function Instructions() {
       const probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setCamera(probe.getVideoTracks().length > 0 ? "Granted" : "Denied");
       setMic(probe.getAudioTracks().length > 0 ? "Granted" : "Denied");
-      // Stop the probe immediately — the interview screen acquires its own stream.
-      probe.getTracks().forEach((t) => t.stop());
+      // Keep only the video for the preview; the microphone is released straight away.
+      probe.getAudioTracks().forEach((t) => t.stop());
+      setPreview(probe);
     } catch (err) {
       setCamera("Denied");
       setMic("Denied");
@@ -47,6 +69,8 @@ export default function Instructions() {
   const begin = async () => {
     setBusy(true);
     setError(null);
+    // Release the preview camera before the interview screen asks for its own.
+    preview?.getTracks().forEach((t) => t.stop());
     // Must happen inside this real user gesture. Non-blocking if the browser refuses.
     try {
       await document.documentElement.requestFullscreen?.();
@@ -65,39 +89,82 @@ export default function Instructions() {
   };
 
   const bothGranted = camera === "Granted" && mic === "Granted";
+  const firstName = profile?.name.split(" ")[0];
 
   return (
     <div>
-      <h1 style={{ fontSize: 26 }}>Assessment Guidelines</h1>
-      <p className="muted" style={{ marginTop: 4 }}>Read carefully before proceeding</p>
+      <h1 className="page-title">Before you begin{firstName ? `, ${firstName}` : ""}</h1>
+      <p className="page-lede">This takes about two minutes to read. Once you begin, the clock for the first section starts.</p>
 
-      <ol className="guidelines" style={{ listStyle: "none", padding: 0 }}>
-        {guidelines.map((g, i) => (
-          <li key={i} className="guideline"><span className="guideline-num">{String(i + 1).padStart(2, "0")}</span><span>{g}</span></li>
-        ))}
-      </ol>
+      <div className="prep">
+        <div>
+          <ol className="route" aria-label={`Your interview has ${sections.length} sections, in this order`}>
+            {sections.map((s) => (
+              <li key={s.name}><strong>{s.name}</strong><span>{s.how}</span></li>
+            ))}
+          </ol>
 
-      <div className="card">
-        <h2 style={{ fontSize: 17, marginBottom: 6 }}>Camera & microphone</h2>
-        <div className="perm-row"><span>Camera</span><PermPill state={camera} /></div>
-        <div className="perm-row"><span>Microphone</span><PermPill state={mic} /></div>
-        {!bothGranted && <button className="btn secondary" style={{ marginTop: 14 }} onClick={() => void requestPermissions()}>Allow camera & microphone</button>}
+          <section className="rules">
+            <h2>Your answers</h2>
+            <ul>
+              <Rule icon={<IconLock />}>Each question may be attempted <strong>only once</strong>; submitted answers are final.</Rule>
+              <Rule icon={<IconBan />}>Copy-paste is <strong>not allowed</strong> anywhere in the assessment.</Rule>
+              <Rule icon={<IconSkip />}>Each section has a <em>Submit section</em> button. Questions left in that section are skipped and can't be answered later.</Rule>
+            </ul>
+          </section>
 
-        <div className="consent-box">
-          During the assessment your camera is used to check that you're present and alone, and that no phone, book or second
-          screen is in view; tab switches, copy-paste attempts and leaving fullscreen are also logged. <strong>No video is recorded
-          or uploaded</strong> — only individual flagged events, each with at most one small still image, are kept for the hiring
-          team to review. Your spoken answers are transcribed in your browser.
+          <section className="rules">
+            <h2>Your setup</h2>
+            <ul>
+              <Rule icon={<IconWifi />}>Use a stable internet connection.</Rule>
+              <Rule icon={<IconBellOff />}>Close other apps, including Outlook and Teams. Notifications or pop-ups count as a violation.</Rule>
+              <Rule icon={<IconMaximize />}>The assessment runs in <strong>fullscreen</strong>, starting when you click Begin. Leaving fullscreen is recorded as a violation.</Rule>
+            </ul>
+          </section>
         </div>
-        <label className="checkbox">
-          <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-          <span>I understand and consent to this monitoring for the duration of the assessment.</span>
-        </label>
 
-        {error && <p className="error-text" role="alert">{error}</p>}
-        <div style={{ marginTop: 18 }}>
-          <button className="btn" disabled={!bothGranted || !consent || busy} onClick={() => void begin()}>{busy ? "Preparing your interview…" : "Begin Assessment →"}</button>
-        </div>
+        <aside className="panel ready" aria-labelledby="ready-title">
+          <h2 id="ready-title">Get ready</h2>
+          <ol className="ready-steps">
+            <Step n={1} complete={bothGranted} title="Turn on your camera and microphone">
+              <div className="preview">
+                <video ref={videoRef} autoPlay muted playsInline aria-label="Your camera preview" hidden={!preview} />
+                {!preview && (
+                  <div className="preview-empty">
+                    <IconCamera size={22} />
+                    <span>Your camera preview appears here. Sit facing the screen, with your face in good light.</span>
+                  </div>
+                )}
+              </div>
+              <div className="perm-list">
+                <PermTag label="Camera" state={camera} />
+                <PermTag label="Microphone" state={mic} />
+              </div>
+              {!bothGranted && <button className="btn secondary" onClick={() => void requestPermissions()}>Allow camera & microphone</button>}
+            </Step>
+
+            <Step n={2} complete={consent} title="Agree to monitoring">
+              <p className="consent-text">
+                Your camera checks that you're present and alone, and that no phone, book or second screen is in view. Tab switches,
+                copy-paste attempts and leaving fullscreen are also logged. <strong>No video is recorded or uploaded</strong> — only
+                individual flagged events, each with at most one small still image, are kept for the hiring team. Spoken answers are
+                transcribed in your browser.
+              </p>
+              <label className="checkbox">
+                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+                <span>I understand and consent to this monitoring for the duration of the assessment.</span>
+              </label>
+            </Step>
+
+            <Step n={3} complete={false} title="Start the assessment">
+              {error && <p className="error-text" role="alert">{error}</p>}
+              <button className="btn large full" disabled={!bothGranted || !consent || busy} onClick={() => void begin()}>
+                {busy ? "Preparing your interview…" : "Begin assessment"}
+              </button>
+              <p className="hint">{!bothGranted ? "Allow camera and microphone to continue." : !consent ? "Tick the consent box to continue." : "Opens in fullscreen."}</p>
+            </Step>
+          </ol>
+        </aside>
       </div>
     </div>
   );

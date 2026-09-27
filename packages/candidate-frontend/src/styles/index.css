@@ -1,87 +1,86 @@
 /*
- * GapVise design tokens — see design-system/gapvise-ai/MASTER.md.
+ * Candidate app tokens — the "exam paper" layer of the GapVise design system
+ * (design-system/gapvise-ai/MASTER.md, pages/candidate.md).
  * Components use these semantic tokens only; never raw hex in component CSS.
+ * Every text/background pair below is checked at >= 4.5:1.
  */
 :root,
 :root[data-theme="dark"] {
-  --bg: #020617;
-  --surface: #0f172a;
-  --surface-2: #1e293b;
-  --surface-hover: #162033;
-  --border: #1e293b;
-  --border-strong: #334155;
-  --text: #f1f5f9;
-  --text-muted: #94a3b8;
-  --text-faint: #7c8ba1;
+  --bg: #0b1020;
+  --surface: #111830;
+  --surface-2: #18203b;
+  --surface-hover: #1b2444;
+  --border: #242e4d;
+  --border-strong: #34406a;
+  --text: #e9edf7;
+  --text-muted: #a3adc7;
+  --text-faint: #8590ae;
   --accent: #2563eb;
-  --accent-hover: #3b82f6;
-  --accent-soft: #172554;
-  --accent-text: #93c5fd;
+  --accent-hover: #3b74f0;
+  --accent-soft: #16224a;
+  --accent-text: #a5bfff;
   --on-accent: #ffffff;
-  --brand-orange: #fb923c;
-  --ok: #4ade80;
-  --ok-soft: #052e16;
+  /* The orange of the logo's dot: time pressure and nothing else. */
+  --signal: #fb923c;
+  --signal-soft: #3a2210;
+  --ok: #5ed39a;
+  --ok-soft: #0f2e22;
   --warn: #fbbf24;
-  --warn-soft: #3b2a05;
-  --err: #fca5a5;
-  --err-soft: #450a0a;
+  --err: #ff9c9c;
+  --err-soft: #3d1518;
   --danger: #dc2626;
   --danger-hover: #ef4444;
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow: 0 1px 3px rgb(0 0 0 / 0.5);
-  --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.6);
-  --focus: 0 0 0 3px rgb(147 197 253 / 0.5);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 24px 60px rgb(2 6 23 / 0.6);
+  --scrim: rgb(5 8 18 / 0.78);
+  --focus: 0 0 0 3px rgb(165 191 255 / 0.45);
   color-scheme: dark;
 }
 
 :root[data-theme="light"] {
-  /* Surfaces */
-  --bg: #f8fafc;
+  --bg: #f4f6fa;
   --surface: #ffffff;
-  --surface-2: #f1f5f9;
-  --surface-hover: #f8fafc;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  /* Text (all ≥4.5:1 on --surface and --surface-2) */
-  --text: #0f172a;
-  --text-muted: #475569;
-  --text-faint: #5e6b7e;
-  /* Brand */
+  --surface-2: #eef1f7;
+  --surface-hover: #f7f9fc;
+  --border: #e1e6ef;
+  --border-strong: #c7cfdd;
+  --text: #10162e;
+  --text-muted: #4a5470;
+  --text-faint: #5e6883;
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
-  --accent-soft: #eff4ff;
+  --accent-soft: #e9effe;
   --accent-text: #1d4ed8;
   --on-accent: #ffffff;
-  --brand-orange: #ea580c;
-  /* Status */
-  --ok: #15803d;
-  --ok-soft: #dcfce7;
+  --signal: #c2410c;
+  --signal-soft: #fff0e6;
+  --ok: #166534;
+  --ok-soft: #e3f6ea;
   --warn: #b45309;
-  --warn-soft: #fef3c7;
   --err: #b91c1c;
-  --err-soft: #fee2e2;
+  --err-soft: #fdecec;
   --danger: #dc2626;
   --danger-hover: #b91c1c;
-  /* Elevation & focus */
-  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.05);
-  --shadow: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
-  --shadow-lg: 0 12px 32px rgb(15 23 42 / 0.16);
+  --shadow-sm: 0 1px 2px rgb(16 22 46 / 0.06);
+  --shadow-lg: 0 24px 60px rgb(16 22 46 / 0.18);
+  --scrim: rgb(16 22 46 / 0.55);
   --focus: 0 0 0 3px rgb(37 99 235 / 0.35);
   color-scheme: light;
 }
 
-
 :root {
-  /* Type — Plus Jakarta Sans, self-hosted (no font CDN) */
+  /* Type — all self-hosted (no font CDN). Serif for questions and page titles,
+     sans for the interface, mono only inside the code editor. */
   --font-sans: "Plus Jakarta Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
+  --font-serif: "Newsreader Variable", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Consolas, monospace;
   --text-xs: 12px;
   --text-sm: 13px;
   --text-base: 15px;
-  --text-md: 15px;
-  --text-lg: 18px;
+  --text-lg: 17px;
   --text-xl: 22px;
-  --text-2xl: 28px;
+  --text-2xl: 30px;
+  --text-3xl: 40px;
   /* Spacing (4px grid) */
   --space-1: 4px;
   --space-2: 8px;
@@ -90,17 +89,23 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
-  /* Shape & motion */
+  --space-10: 40px;
+  --space-12: 48px;
+  /* Shape & motion — radius follows hierarchy: controls < panels < sheets */
   --radius-sm: 6px;
-  --radius: 8px;
-  --radius-lg: 12px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
   --radius-full: 999px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
   --dur-fast: 120ms;
-  --dur: 180ms;
-  /* Control sizes */
-  --control-h: 38px;
-  --control-h-sm: 32px;
+  --dur: 200ms;
+  --control-h: 44px;
+  --control-h-sm: 36px;
+  --topbar-h: 64px;
+  /* Proctoring banners keep one amber in both themes so they read as the same alert. */
+  --banner-bg: #fcd34d;
+  --banner-text: #1c1400;
 }
 
 *,
@@ -112,7 +117,7 @@
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
@@ -129,18 +134,20 @@ body {
 
 a {
   color: var(--accent-text);
-  text-decoration: none;
   text-underline-offset: 3px;
 }
-a:hover {
-  text-decoration: underline;
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
-h1, h2, h3, h4 {
+p {
   margin: 0;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
+  text-wrap: pretty;
 }
 
 button,
@@ -152,23 +159,24 @@ textarea {
 }
 
 button,
-[role="button"],
-[role="tab"],
-label.checkbox,
-summary {
+label.checkbox {
   cursor: pointer;
 }
 
 :focus-visible {
   outline: none;
   box-shadow: var(--focus);
-  border-radius: var(--radius-sm);
 }
 
-code,
-.mono {
-  font-family: var(--font-mono);
-  font-size: 0.92em;
+kbd {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  color: var(--text-muted);
 }
 
 .icon {
@@ -193,9 +201,6 @@ code,
 }
 .tabular {
   font-variant-numeric: tabular-nums;
-}
-.nowrap {
-  white-space: nowrap;
 }
 
 @media (prefers-reduced-motion: reduce) {

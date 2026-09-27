@@ -24,14 +24,14 @@
   width: 248px;
   display: flex;
   flex-direction: column;
-  background: var(--surface);
+  background: var(--bg);
   border-right: 1px solid var(--border);
   overflow-y: auto;
   overscroll-behavior: contain;
   z-index: 120;
 }
 .brand {
-  padding: var(--space-5) var(--space-5) var(--space-4);
+  padding: var(--space-5) var(--space-5) var(--space-3);
 }
 .brand-name {
   font-weight: 800;
@@ -55,19 +55,17 @@
   flex: 1;
 }
 .nav-group-title {
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   color: var(--text-faint);
-  padding: var(--space-4) 10px 6px;
+  padding: var(--space-5) 12px 6px;
 }
 .nav a {
   display: flex;
   align-items: center;
   gap: 10px;
   min-height: 36px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-weight: 500;
@@ -79,9 +77,13 @@
   text-decoration: none;
 }
 .nav a.active {
-  background: var(--accent-soft);
-  color: var(--accent-text);
+  background: var(--surface);
+  color: var(--text);
   font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent), var(--shadow-sm);
+}
+.nav a.active .icon {
+  color: var(--accent-text);
 }
 .identity {
   border-top: 1px solid var(--border);
@@ -131,7 +133,7 @@
   margin-left: 248px;
   flex: 1;
   min-width: 0;
-  padding: var(--space-8) var(--space-8) 56px;
+  padding: var(--space-10) 48px 64px;
   max-width: 1480px;
 }
 
@@ -156,7 +158,7 @@
     justify-content: space-between;
     gap: var(--space-3);
     padding: 10px var(--space-4);
-    background: var(--surface);
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
   .sidebar {
@@ -177,7 +179,7 @@
     position: fixed;
     inset: 0;
     z-index: 115;
-    background: rgb(2 6 23 / 0.5);
+    background: var(--scrim);
   }
   .main {
     margin-left: 0;
@@ -195,9 +197,11 @@
   flex-wrap: wrap;
 }
 .page-header h1 {
+  font-family: var(--font-serif);
   font-size: var(--text-2xl);
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
 }
 .page-header p {
   margin: 6px 0 0;
@@ -215,7 +219,6 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
   padding: var(--space-5) var(--space-6);
   margin-bottom: var(--space-5);
 }
@@ -245,27 +248,33 @@
   margin-bottom: 0;
 }
 
-/* ---------- Stats ---------- */
+/* ---------- Stats: a ledger row of figures, not a row of cards ---------- */
 .stat-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-4);
-  margin-bottom: var(--space-5);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin-bottom: var(--space-6);
+  border-top: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border);
 }
 .stat-card {
-  position: relative;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  display: grid;
+  grid-template-columns: 8px 1fr;
+  column-gap: 8px;
+  align-items: center;
+  align-content: start;
   padding: var(--space-4) var(--space-5);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  border-left: 1px solid var(--border);
 }
+.stat-card:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+/* Tone dot beside the label; the figure itself stays in text color. */
 .stat-card::before {
   content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   background: var(--border-strong);
 }
 .stat-card .stat-label {
@@ -274,11 +283,14 @@
   font-weight: 500;
 }
 .stat-card .stat-value {
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  grid-column: 1 / -1;
+  font-family: var(--font-serif);
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
-  margin-top: 2px;
+  margin-top: 6px;
 }
 .stat-card.total::before {
   background: var(--accent);
@@ -344,7 +356,8 @@
 .table-scroll {
   overflow-x: auto;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
 }
 .data-table {
   width: 100%;
@@ -359,13 +372,12 @@
   vertical-align: middle;
 }
 .data-table th {
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--text-muted);
   font-weight: 600;
   font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   white-space: nowrap;
+  border-bottom-color: var(--border-strong);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -399,7 +411,7 @@
   box-shadow: -8px 0 12px -10px rgb(15 23 42 / 0.25);
 }
 .data-table.sticky-actions th:last-child {
-  background: var(--surface-2);
+  background: var(--surface);
   z-index: 2;
 }
 .data-table.sticky-actions tbody tr:hover td.actions {
@@ -580,6 +592,10 @@ input[type="checkbox"] {
   width: auto;
   min-width: 200px;
 }
+.toolbar select {
+  max-width: 280px;
+  text-overflow: ellipsis;
+}
 .toolbar .spacer {
   flex: 1;
 }
@@ -617,7 +633,6 @@ input[type="checkbox"] {
   background: var(--surface);
   color: var(--text);
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-sm);
 }
 .btn.secondary:hover:not(:disabled) {
   background: var(--surface-2);
@@ -794,7 +809,7 @@ a.callout:hover {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgb(2 6 23 / 0.55);
+  background: var(--scrim);
   display: grid;
   place-items: center;
   z-index: 250;
@@ -804,13 +819,15 @@ a.callout:hover {
 .modal {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
   width: min(480px, 100%);
   box-shadow: var(--shadow-lg);
 }
 .modal h2 {
-  font-size: var(--text-lg);
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 500;
   margin-bottom: var(--space-2);
 }
 .modal-actions {
@@ -856,6 +873,7 @@ a.callout:hover {
 }
 
 .pre-block {
+  font-family: var(--font-mono);
   white-space: pre-wrap;
   max-height: 220px;
   overflow: auto;
@@ -971,4 +989,106 @@ a.callout:hover {
 .row-menu-item:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ---------- Overview: the brief ---------- */
+.brief {
+  margin-bottom: var(--space-8);
+  max-width: 900px;
+}
+.brief-date {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.brief-lead {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 450;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+}
+.brief-lead a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+.brief-lead a:hover {
+  text-decoration-color: var(--accent);
+}
+.brief-lead a.flag {
+  text-decoration-color: var(--err);
+}
+.attention-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.attention-list li + li {
+  border-top: 1px solid var(--border);
+}
+.attention-list a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  color: var(--text);
+}
+.attention-list a:hover {
+  text-decoration: none;
+}
+.attention-list a:hover .attention-go {
+  text-decoration: underline;
+}
+.attention-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+.attention-dot.err {
+  background: var(--err);
+}
+.attention-text {
+  flex: 1;
+}
+.attention-go {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--accent-text);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .brief-lead {
+    font-size: 24px;
+  }
+  .stat-card {
+    padding: var(--space-3) var(--space-4);
+  }
+  .stat-card .stat-value {
+    font-size: 28px;
+  }
+}
+
+/* Narrow screens: figures in a clean two-column grid, rows divided by hairlines. */
+@media (max-width: 900px) {
+  .stat-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-4);
+  }
+  .stat-card,
+  .stat-card:first-child {
+    border-left: 0;
+    padding: var(--space-3) 0;
+    border-top: 1px solid var(--border);
+  }
+  .stat-card:nth-child(-n + 2) {
+    border-top: 0;
+  }
 }

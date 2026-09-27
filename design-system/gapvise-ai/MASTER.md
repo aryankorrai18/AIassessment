@@ -1,5 +1,8 @@
 # GapVise AI — Design System (Master)
 
+Page overrides live in `pages/`: the candidate app follows
+`pages/candidate.md` where it differs from this file.
+
 The single source of truth for how GapVise looks. Both apps implement these
 tokens in `src/styles/index.css`; component CSS uses the semantic tokens only —
 never raw hex values.
@@ -35,30 +38,34 @@ All text pairs are verified ≥ **4.5:1** (WCAG AA) in both themes.
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--bg` | `#F8FAFC` | `#020617` | Page background |
-| `--surface` | `#FFFFFF` | `#0F172A` | Cards, tables, inputs |
-| `--surface-2` | `#F1F5F9` | `#1E293B` | Table headers, subtle fills |
-| `--border` / `--border-strong` | `#E2E8F0` / `#CBD5E1` | `#1E293B` / `#334155` | Dividers / control borders |
-| `--text` | `#0F172A` | `#F1F5F9` | Primary text |
-| `--text-muted` | `#475569` | `#94A3B8` | Secondary text |
-| `--text-faint` | `#5E6B7E` | `#7C8BA1` | Hints, sub-lines (≥ 4.9:1 on every surface) |
+| `--bg` | `#F4F6FA` (paper) | `#0B1020` (ink) | Page background; the admin sidebar sits on it |
+| `--surface` | `#FFFFFF` | `#111830` | Panels, tables, inputs |
+| `--surface-2` | `#EEF1F7` | `#18203B` | Subtle fills |
+| `--border` / `--border-strong` | `#E1E6EF` / `#C7CFDD` | `#242E4D` / `#34406A` | Dividers / control borders and table header rules |
+| `--text` | `#10162E` | `#E9EDF7` | Primary text |
+| `--text-muted` | `#4A5470` | `#A3ADC7` | Secondary text |
+| `--text-faint` | `#5E6883` | `#8590AE` | Hints, sub-lines (≥ 4.9:1 on every surface) |
 | `--accent` | `#2563EB` | `#2563EB` | Primary buttons, active states (white text: 5.17:1) |
-| `--accent-text` | `#1D4ED8` | `#93C5FD` | Links, accent-colored text |
-| `--accent-soft` | `#EFF4FF` | `#172554` | Active nav, info badges |
-| `--brand-orange` | `#EA580C` | `#FB923C` | Logo dot, marketing CTAs only — never for status |
-| `--ok` / `--ok-soft` | `#15803D` / `#DCFCE7` | `#4ADE80` / `#052E16` | Success |
-| `--warn` / `--warn-soft` | `#B45309` / `#FEF3C7` | `#FBBF24` / `#3B2A05` | Warning, pending |
-| `--err` / `--err-soft` | `#B91C1C` / `#FEE2E2` | `#FCA5A5` / `#450A0A` | Errors, destructive text |
+| `--accent-text` | `#1D4ED8` | `#A5BFFF` | Links, accent-colored text |
+| `--accent-soft` | `#E9EFFE` | `#16224A` | Info badges, selected states |
+| `--brand-orange` / `--signal` | `#C2410C` | `#FB923C` | Logo dot; in the candidate app, time running low only — never for status |
+| `--ok` / `--ok-soft` | `#166534` / `#E3F6EA` | `#5ED39A` / `#0F2E22` | Success |
+| `--warn` / `--warn-soft` | `#B45309` / `#FEF3C7` | `#FBBF24` / `#33260A` | Warning, pending |
+| `--err` / `--err-soft` | `#B91C1C` / `#FDECEC` | `#FF9C9C` / `#3D1518` | Errors, integrity flags, destructive text |
 | `--danger` | `#DC2626` | `#DC2626` | Destructive button fill (white text: 4.83:1) |
+
+Both apps share this ink-and-paper palette (v2, 2026-09-27). The candidate app
+defaults to dark; the admin app follows the OS.
 
 **Status never relies on color alone:** every badge pairs a color with an icon
 *and* a text label.
 
 ## 3. Typography
 
-- **Family:** Plus Jakarta Sans (variable), self-hosted via
-  `@fontsource-variable/plus-jakarta-sans` — no font CDN (see TECH_STACK's
-  locked-down-network principle). Monospace: system UI mono (access keys, IDs, code).
+- **Families** (all self-hosted through `@fontsource-variable/*` — no font CDN):
+  - **Newsreader** (serif) — page titles, report figures, and questions wherever a candidate's question is shown (candidate interview, admin transcript), plus the Overview brief.
+  - **Plus Jakarta Sans** — every control, table, label and body text.
+  - **JetBrains Mono** — access keys, code and raw data only. Ligatures off in the code editor.
 - **Scale:** 12 · 13 · 14 (admin body) / 15 (candidate body) · 18 · 22 · 28px.
 - **Weights:** 500 body emphasis, 600 labels/buttons, 700 card titles, 800 page titles and wordmark.
 - **Rules:** line-height 1.55 for body; `text-wrap: balance` on headings;
@@ -83,10 +90,10 @@ collapses under `prefers-reduced-motion`.
 |---|---|
 | **Button** | Primary (accent fill), `secondary` (surface + border), `danger` (red fill, for confirming destruction), `danger-ghost` (red text, for rows), `small`, `icon-only` (with `aria-label`). Hover darkens, press nudges 1px. |
 | **Status badge** (`.pill`) | Icon + label + tone. Interview statuses: Pending (warn, clock), Active (info, dot), Completed (ok, check), No-show (err, cross), Expired (err, ban). |
-| **Table** | Uppercase 12px headers on `--surface-2`; 10×12px cells; row hover; primary cell = name over faint email; long text clamped with a tooltip; dates compact (`Sep 23, 12:09 AM`). |
+| **Table** | Sentence-case 12px semibold headers with a strong bottom rule (no all caps); 10×12px cells; row hover; primary cell = name over faint email; long text clamped with a tooltip; dates compact (`Sep 23, 12:09 AM`). |
 | **Row actions** | One visible primary action + a `⋯` menu (`RowMenu`) for the rest, with destructive items at the bottom in red. |
 | **Search** | Leading search icon; placeholder ends with `…`. |
-| **Stat card** | Label, big tabular number, 3px tone stripe on the left. |
+| **Stat row** (`.stat-row`) | One ledger row of figures separated by hairlines, not a row of cards: a tone dot and label over a serif tabular figure. Two columns on narrow screens. |
 | **Navigation** | Fixed sidebar ≥ 901px; below that a top bar + slide-in drawer (hidden drawer is removed from tab order). |
 | **Loading** | Skeleton blocks for page-level loads; inline "Loading…" for table rows. |
 | **Icons** | Local SVG set (`components/Icons.tsx`, Lucide-style 2px strokes). **No emoji or Unicode symbols as icons.** Decorative icons are `aria-hidden`. |

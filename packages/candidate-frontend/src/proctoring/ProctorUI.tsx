@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
+import { IconAlert } from "../components/Icons";
 import type { Proctoring } from "./useProctoring";
 
 const OBJECT_MESSAGES: Record<string, string> = {
@@ -9,12 +10,22 @@ const OBJECT_MESSAGES: Record<string, string> = {
   remote: "A remote control detected in frame",
 };
 
-/** Tier 1 — an ordinary mirrored self-view. Never a diagnostic overlay: no mesh, boxes or score. */
-export function SelfView({ videoRef, cameraError }: { videoRef: RefObject<HTMLVideoElement | null>; cameraError: string | null }) {
-  if (cameraError) {
-    return <div className="self-view self-view-error" role="status">Proctoring couldn't start: {cameraError}</div>;
-  }
-  return <video ref={videoRef} className="self-view" muted playsInline aria-hidden="true" />;
+/**
+ * Tier 1 — an ordinary mirrored self-view, docked in the rail (floating bottom-right on
+ * narrow screens). Never a diagnostic overlay: no mesh, boxes or score.
+ */
+export function SelfView({ videoRef, cameraError, name }: { videoRef: RefObject<HTMLVideoElement | null>; cameraError: string | null; name?: string }) {
+  return (
+    <div className="self-view-wrap">
+      {cameraError
+        ? <div className="self-view-error" role="status">Proctoring couldn't start: {cameraError}</div>
+        : <video ref={videoRef} className="self-view" muted playsInline aria-hidden="true" />}
+      <p className="self-caption">
+        {name && <strong>{name}</strong>}
+        Only you should be in view. Nothing is recorded.
+      </p>
+    </div>
+  );
 }
 
 /** Tier 2 — stackable, non-blocking banners (more than one can legitimately be true at once). */
@@ -26,7 +37,7 @@ export function Banners({ p }: { p: Proctoring }) {
   if (items.length === 0) return null;
   return (
     <div className="banner-stack">
-      {items.map((t) => <div key={t} className="proctor-banner" role="alert">{t}</div>)}
+      {items.map((t) => <div key={t} className="proctor-banner" role="alert"><IconAlert />{t}</div>)}
     </div>
   );
 }
@@ -60,8 +71,8 @@ export function BlockingOverlay({ p }: { p: Proctoring }) {
   return (
     <div className="blocking-overlay">
       <div className="blocking-card" role="alertdialog" aria-modal="true" aria-labelledby="ov-title" aria-describedby="ov-body" ref={dialogRef}>
-        <span className="pill err">{p.strikeCount} recorded</span>
-        <h2 id="ov-title">{tab ? "Browser Navigation Detected" : "Fullscreen Mode Required"}</h2>
+        <span className="tag err">{p.strikeCount} recorded</span>
+        <h2 id="ov-title">{tab ? "You left the assessment tab" : "Fullscreen is required"}</h2>
         <p id="ov-body">
           {tab
             ? "Navigating away from this assessment window is recorded as a violation. Please stay on this tab for the rest of the assessment."
@@ -72,10 +83,10 @@ export function BlockingOverlay({ p }: { p: Proctoring }) {
         )}
         <div className="blocking-actions">
           {tab ? (
-            <button ref={primaryRef} className="btn" onClick={p.dismissTabOverlay}>Return to Assessment</button>
+            <button ref={primaryRef} className="btn" onClick={p.dismissTabOverlay}>Return to assessment</button>
           ) : (
             <>
-              <button ref={primaryRef} className="btn" onClick={() => void p.reenterFullscreen()}>Re-enter Fullscreen →</button>
+              <button ref={primaryRef} className="btn" onClick={() => void p.reenterFullscreen()}>Re-enter fullscreen</button>
               {p.fullscreenDenied && <button className="btn secondary" onClick={p.continueWithoutFullscreen}>Continue without fullscreen</button>}
             </>
           )}
@@ -89,7 +100,7 @@ export function DuplicateTabBlock() {
   return (
     <div className="duplicate-block" role="alertdialog" aria-modal="true" aria-labelledby="dup-title">
       <div className="blocking-card">
-        <h2 id="dup-title">Already Open Elsewhere</h2>
+        <h2 id="dup-title">Already open in another tab</h2>
         <p>This interview is already open in another tab or window. Please continue there — working in two tabs at once can cause answers to be lost. You can close this tab.</p>
       </div>
     </div>

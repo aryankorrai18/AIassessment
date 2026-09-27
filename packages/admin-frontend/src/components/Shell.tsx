@@ -24,7 +24,7 @@ function useTheme(): [Theme, () => void] {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     // Keep the browser chrome (mobile address bar) in step with the page background.
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#020617" : "#f8fafc");
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#0b1020" : "#f4f6fa");
   }, [theme]);
   const toggle = () => {
     const next = theme === "dark" ? "light" : "dark";
@@ -39,12 +39,12 @@ function useTheme(): [Theme, () => void] {
 }
 
 interface NavItem { to: string; label: string; icon: ReactNode }
-interface NavGroup { title: string; items: NavItem[]; masterOnly?: boolean }
+interface NavGroup { title: string | null; items: NavItem[]; masterOnly?: boolean }
 
 const NAV: NavGroup[] = [
-  { title: "Dashboard", items: [{ to: "/admin/overview", label: "Overview", icon: <IconOverview /> }] },
+  { title: null, items: [{ to: "/admin/overview", label: "Overview", icon: <IconOverview /> }] },
   {
-    title: "Upload Candidates and JD",
+    title: "Hiring",
     items: [
       { to: "/admin/candidates", label: "Candidates", icon: <IconUsers /> },
       { to: "/admin/jd-master", label: "JD Master", icon: <IconFile /> },
@@ -66,7 +66,7 @@ const NAV: NavGroup[] = [
     ],
   },
   {
-    title: "Administration",
+    title: "Admin",
     masterOnly: true,
     items: [
       { to: "/admin/users", label: "Admin Users", icon: <IconShield /> },
@@ -76,7 +76,7 @@ const NAV: NavGroup[] = [
   },
 ];
 
-const initials = (name = "") => name.split(/s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "?";
+const initials = (name = "") => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "?";
 
 export function Shell() {
   const { admin, logout } = useAuth();
@@ -107,13 +107,12 @@ export function Shell() {
       <aside className={`sidebar${menuOpen ? " open" : ""}`} id="sidebar">
         <div className="brand">
           <div className="brand-name"><IconLogo size={32} /> <span>GapVise <b>AI</b></span></div>
-          <div className="brand-sub">Admin Dashboard</div>
         </div>
         <nav className="nav" aria-label="Main">
           {/* MASTER-only groups are filtered out of the DOM entirely, header included. */}
           {NAV.filter((g) => !g.masterOnly || isMaster).map((g) => (
-            <div key={g.title}>
-              <div className="nav-group-title">{g.title}</div>
+            <div key={g.title ?? "home"}>
+              {g.title && <div className="nav-group-title">{g.title}</div>}
               {g.items.map((item) => (
                 <NavLink key={item.to} to={item.to}>{item.icon}{item.label}</NavLink>
               ))}

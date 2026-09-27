@@ -24,6 +24,13 @@ export const IconLock = (p: IconProps) => <Icon {...p}><rect x="4" y="11" width=
 export const IconAlert = (p: IconProps) => <Icon {...p}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><path d="M12 9v4M12 17h.01" /></Icon>;
 export const IconArrowRight = (p: IconProps) => <Icon {...p}><path d="M5 12h14M12 5l7 7-7 7" /></Icon>;
 export const IconCamera = (p: IconProps) => <Icon {...p}><path d="M23 7 16 12l7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" /></Icon>;
+export const IconClock = (p: IconProps) => <Icon {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></Icon>;
+export const IconChevronDown = (p: IconProps) => <Icon {...p}><path d="m6 9 6 6 6-6" /></Icon>;
+export const IconBan = (p: IconProps) => <Icon {...p}><circle cx="12" cy="12" r="9" /><path d="m5.7 5.7 12.6 12.6" /></Icon>;
+export const IconWifi = (p: IconProps) => <Icon {...p}><path d="M5 12.55a11 11 0 0 1 14 0M8.5 16.1a6 6 0 0 1 7 0M2 8.8a16 16 0 0 1 20 0M12 20h.01" /></Icon>;
+export const IconBellOff = (p: IconProps) => <Icon {...p}><path d="M13.73 21a2 2 0 0 1-3.46 0M18.63 13A17.9 17.9 0 0 1 18 8M6.26 6.26A5.9 5.9 0 0 0 6 8c0 7-3 9-3 9h14M18 8a6 6 0 0 0-9.33-5M2 2l20 20" /></Icon>;
+export const IconMaximize = (p: IconProps) => <Icon {...p}><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" /></Icon>;
+export const IconSkip = (p: IconProps) => <Icon {...p}><path d="m5 4 10 8-10 8V4zM19 5v14" /></Icon>;
 
 /** Brand mark: a "G" drawn with a deliberate gap; the orange dot is the gap GapVise finds. */
 export function IconLogo({ size = 32 }: { size?: number }) {

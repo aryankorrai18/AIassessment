@@ -52,4 +52,25 @@ Status: **Fixed** in the `design/ui-refresh` branch · **Kept** (deliberate) · 
 - Sync Results/Candidates filters and tabs to the URL so views can be shared.
 - Replace `window.confirm` for destructive actions with a styled confirmation dialog.
 - Keyboard shortcut / command palette for power users.
-- A candidate-app pass at 390px width (the interview screen works but is desktop-first by design).
+
+## Candidate app redesign (2026-09-27)
+
+The candidate app got its own layer, `pages/candidate.md`: serif questions, a
+session bar with a time line, a per-question tracker, a docked self-view and a
+composer with Ctrl/Cmd + Enter. It was checked at 1440px (dark and light) and
+390px. At 390px the question now comes before the progress rail, and the
+self-view shrinks to a 96px inlay.
+
+## Admin redesign (2026-09-27)
+
+The admin app moved onto the shared ink-and-paper palette and the serif, as the
+"examiner's desk" counterpart to the candidate app:
+- The Overview opens with a one-sentence brief built from live data, with each clause linking to the page that deals with it.
+- Stat cards became one ledger row of figures.
+- Table headers and labels are sentence case.
+- Report transcripts show questions in the serif, as the candidate saw them.
+
+Fixes found during the pass:
+- Avatar initials split names on the letter "s" instead of on whitespace.
+- Integrity events are now grouped by type with a count and time range; one report listed 85 events one per line.
+- Row-level JD deletion now uses the quiet destructive button.

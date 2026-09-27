@@ -15,6 +15,13 @@ const COLS = 8;
 
 const isScoring = (r: ResultRow) => r.reportStatus === "PENDING" || r.reportStatus === "PROCESSING";
 
+/** Groups integrity events by type, most frequent first, each with its timestamps in order. */
+function groupEvents(events: { type: string; occurredAt: number }[]) {
+  const byType = new Map<string, number[]>();
+  for (const e of events) byType.set(e.type, [...(byType.get(e.type) ?? []), e.occurredAt]);
+  return [...byType].map(([type, times]) => ({ type, times: times.sort((a, b) => a - b) })).sort((a, b) => b.times.length - a.times.length);
+}
+
 export default function Results() {
   const toast = useToast();
   const [rows, setRows] = useState<ResultRow[] | null>(null);
@@ -50,7 +57,7 @@ export default function Results() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return all.filter((r) =>
-      (!q || r.candidateName.toLowerCase().includes(q) || r.email.includes(q) || (r.refId ?? "").toLowerCase().includes(q)) &&
+      (!q || r.candidateName.toLowerCase().includes(q) || r.email.includes(q) || (r.refId ?? "").toLowerCase().includes(q) || (r.jdTitle ?? "").toLowerCase().includes(q)) &&
       (!cluster || r.cluster === cluster) && (!jd || r.jdTitle === jd) && (!batch || r.batchId === batch) && (!reviewOnly || r.needsReview));
   }, [all, search, cluster, jd, batch, reviewOnly]);
   const reviewCount = all.filter((r) => r.needsReview).length;
@@ -126,7 +133,7 @@ export default function Results() {
 
       <div className="card">
         <div className="toolbar" style={{ marginBottom: 0 }}>
-          <div className="search-field"><IconSearch /><input type="search" placeholder="Search name, email or reference ID…" aria-label="Search results" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
+          <div className="search-field"><IconSearch /><input type="search" placeholder="Search name, email, reference ID or JD…" aria-label="Search results" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
           <select aria-label="Filter by cluster" value={cluster} onChange={(e) => setCluster(e.target.value)}>
             <option value="">All clusters</option>{clusters.map((c) => <option key={c}>{c}</option>)}
           </select>
@@ -303,12 +310,23 @@ function ResultDetailView({ row }: { row: ResultRow }) {
                 ))}
               </div>
             )}
+            {/* Repeated events of one type are grouped: a count and time range, with every timestamp one click away. */}
             <ul className="evidence-list">
-              {d.violations.filter((v) => !v.snapshot).map((v) => (
-                <li key={v.id}>
-                  <IconAlert size={14} />
-                  <span className="evidence-label">{VIOLATION_LABELS[v.type] ?? v.type}</span>
-                  <span className="sub-line tabular">{fmtDateTimeSeconds(v.occurredAt)}</span>
+              {groupEvents(d.violations.filter((v) => !v.snapshot)).map((g) => (
+                <li key={g.type}>
+                  <details className="evidence-group">
+                    <summary>
+                      <IconAlert size={14} />
+                      <span className="evidence-label">{VIOLATION_LABELS[g.type] ?? g.type}</span>
+                      <span className="evidence-count tabular">{g.times.length === 1 ? "once" : `${g.times.length} times`}</span>
+                      <span className="sub-line tabular">
+                        {g.times.length === 1 ? fmtDateTimeSeconds(g.times[0]) : `${fmtDateTimeSeconds(g.times[0])} to ${fmtDateTimeSeconds(g.times[g.times.length - 1])}`}
+                      </span>
+                    </summary>
+                    <ol className="evidence-times tabular">
+                      {g.times.map((t, i) => <li key={i}>{fmtDateTimeSeconds(t)}</li>)}
+                    </ol>
+                  </details>
                 </li>
               ))}
             </ul>
@@ -320,7 +338,9 @@ function ResultDetailView({ row }: { row: ResultRow }) {
         <div className="detail-label">Transcript</div>
         {d.transcript.length === 0 ? <span className="faint">No transcript (interview never started).</span> : d.transcript.map((t, i) => (
           <div key={i} className="transcript-entry" style={t.reached ? undefined : { opacity: 0.7 }}>
-            <div className="transcript-meta">{t.section} · {t.reached ? t.inputMode ?? "typed" : "not reached"}{t.skill ? ` · tests: ${t.skill}` : ""}</div>
+            <div className="transcript-meta">
+              Question {i + 1} · {capitalize(t.section)} · {t.reached ? (t.inputMode === "voice" ? "Spoken answer" : "Typed answer") : "Not reached"}{t.skill ? ` · Skill: ${t.skill}` : ""}
+            </div>
             <div className="transcript-q">{t.question}</div>
             {!t.reached ? <div className="transcript-a"><em>(not reached — interview ended before this question)</em></div>
               : t.answer ? <div className="transcript-a">{t.answer}</div> : <div className="transcript-a"><em>(no answer)</em></div>}

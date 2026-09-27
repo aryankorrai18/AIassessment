@@ -1,18 +1,18 @@
 import { Component, Suspense, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { IconLogo, IconMoon, IconSun } from "./Icons";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useCandidate } from "../lib/context";
 
 type Theme = "light" | "dark";
 
-function ThemeToggle() {
+export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(() => (document.documentElement.dataset.theme === "light" ? "light" : "dark"));
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#020617" : "#f8fafc");
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#0b1020" : "#f4f6fa");
   }, [theme]);
+  const next = theme === "dark" ? "light" : "dark";
   const toggle = () => {
-    const next = theme === "dark" ? "light" : "dark";
     try {
       localStorage.setItem("cand-theme", next);
     } catch {
@@ -20,28 +20,46 @@ function ThemeToggle() {
     }
     setTheme(next);
   };
-  return <button className="btn ghost small" onClick={toggle} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>{theme === "dark" ? <><IconSun />Light</> : <><IconMoon />Dark</>}</button>;
+  return (
+    <button className="icon-btn" onClick={toggle} aria-label={`Switch to ${next} theme`} title={`Switch to ${next} theme`}>
+      {theme === "dark" ? <IconSun size={18} /> : <IconMoon size={18} />}
+    </button>
+  );
+}
+
+export function Brand() {
+  return (
+    <div className="cand-brand">
+      <IconLogo size={30} />
+      <span className="cand-brand-name">GapVise <b>AI</b></span>
+    </div>
+  );
 }
 
 export function Shell() {
   const { profile } = useCandidate();
+  // The interview screen draws its own session bar (clock, progress, proctoring).
+  const inSession = useLocation().pathname.endsWith("/session");
+  const fallback = <p className="muted" style={{ padding: 24 }}>Loading…</p>;
+  if (inSession) {
+    return <Suspense fallback={fallback}><Outlet /></Suspense>;
+  }
   return (
     <>
       <header className="cand-header">
-        <div className="cand-brand">
-          <IconLogo size={32} />
-          <div>
-            <div className="cand-brand-name">GapVise <b>AI</b></div>
-            <div className="cand-brand-sub">AI Skills Assessment</div>
-          </div>
-        </div>
+        <Brand />
         <div className="cand-header-right">
-          {profile && <span><strong>{profile.name}</strong> · {profile.email}</span>}
+          {profile && (
+            <div className="cand-who">
+              <strong>{profile.name}</strong>
+              <span>{profile.email}</span>
+            </div>
+          )}
           <ThemeToggle />
         </div>
       </header>
       <main className="cand-main">
-        <Suspense fallback={<p className="muted">Loading…</p>}>
+        <Suspense fallback={fallback}>
           <Outlet />
         </Suspense>
       </main>
@@ -60,9 +78,9 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error: E
   render() {
     if (!this.state.error) return this.props.children;
     return (
-      <div className="card" role="alert" style={{ maxWidth: 520, margin: "60px auto" }}>
-        <h2>Something went wrong</h2>
-        <p className="muted">Your submitted answers are safe. Reload the page to continue where you left off.</p>
+      <div className="panel crash" role="alert">
+        <h1 className="page-title" style={{ fontSize: 30 }}>This page stopped working</h1>
+        <p className="muted">Every answer you submitted is saved. Reload to continue from the question you were on.</p>
         <button className="btn" onClick={() => window.location.reload()}>Reload</button>
       </div>
     );

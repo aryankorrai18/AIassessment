@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent } from "react";
 import { IconAlert, IconCheck, IconPlus, IconRefresh, IconSearch, IconTrash, IconUpload, IconX } from "../components/Icons";
+import { useSearchParams } from "react-router-dom";
 import { useToast } from "../components/Toast";
 import { api, errorMessage } from "../lib/api";
 import { missingColumns, OPTIONAL_COLUMNS, REQUIRED_COLUMNS, rowFromSheet, validateRows, type ImportRow, type ValidatedRow } from "../lib/candidateValidation";
@@ -10,6 +11,7 @@ import { EmptyRow, Modal, RowMenu, StatusPill } from "./shared";
 
 const PREVIEW_PAGE_SIZE = 100;
 const IMPORT_CHUNK_SIZE = 200;
+const NO_JD = "__none";
 
 type ImportResponse = { imported: number; results: { rowIndex: number; email: string; status: "imported" | "skipped"; error?: string }[] };
 type Tab = "list" | "bulk" | "single";
@@ -62,10 +64,39 @@ function CandidateList({ candidates, jds, reload }: { candidates: CandidateRow[]
   const [reassessFor, setReassessFor] = useState<CandidateRow | null>(null);
   const titleByRef = useMemo(() => new Map(jds.map((j) => [j.jdRef, j.title])), [jds]);
 
+  // The JD filter lives in the URL (?jd=…) so a filtered list can be bookmarked or linked from JD Master.
+  const [params, setParams] = useSearchParams();
+  const jd = params.get("jd") ?? "";
+  const setJd = (value: string) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set("jd", value);
+      else next.delete("jd");
+      return next;
+    }, { replace: true });
+    setPage(0);
+  };
+  // Options: every JD in JD Master, plus any a candidate was assessed for that has since been deleted.
+  const jdOptions = useMemo(() => {
+    const refs = new Set(jds.map((j) => j.jdRef));
+    for (const c of candidates ?? []) for (const r of c.jdRefs ?? []) refs.add(r);
+    return [...refs]
+      .map((ref) => ({ ref, label: titleByRef.get(ref) ?? `${ref} (deleted JD)` }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [jds, candidates, titleByRef]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (candidates ?? []).filter((c) => !q || c.email.includes(q) || c.name.toLowerCase().includes(q) || (c.refId ?? "").toLowerCase().includes(q));
-  }, [candidates, search]);
+    return (candidates ?? []).filter((c) => {
+      // Search also matches the titles of every JD the candidate was assessed for, so "java" finds Java candidates.
+      const jdTitles = [...(c.jdRefs ?? []), ...(c.jdRef ? [c.jdRef] : [])].map((r) => (titleByRef.get(r) ?? r).toLowerCase());
+      if (q && !(c.email.includes(q) || c.name.toLowerCase().includes(q) || (c.refId ?? "").toLowerCase().includes(q) || jdTitles.some((t) => t.includes(q)))) return false;
+      if (jd === NO_JD) return (c.jdRefs ?? []).length === 0 && !c.jdRef;
+      if (jd) return (c.jdRefs ?? []).includes(jd) || c.jdRef === jd;
+      return true;
+    });
+  }, [candidates, search, jd, titleByRef]);
+  const jdLabel = jd === NO_JD ? "no JD" : titleByRef.get(jd) ?? jd;
   const pageRows = filtered.slice(page * PREVIEW_PAGE_SIZE, (page + 1) * PREVIEW_PAGE_SIZE);
   const pages = Math.max(1, Math.ceil(filtered.length / PREVIEW_PAGE_SIZE));
 
@@ -91,11 +122,18 @@ function CandidateList({ candidates, jds, reload }: { candidates: CandidateRow[]
       <div className="toolbar">
         <div className="search-field">
           <IconSearch />
-          <input type="search" placeholder="Search name, email or reference ID…" aria-label="Search candidates" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
+          <input type="search" placeholder="Search name, email, reference ID or JD…" aria-label="Search candidates" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
         </div>
+        <select aria-label="Filter by JD" value={jd} onChange={(e) => setJd(e.target.value)}>
+          <option value="">All JDs</option>
+          {jdOptions.map((o) => <option key={o.ref} value={o.ref}>{o.label}</option>)}
+          <option value={NO_JD}>Not matched to a JD</option>
+        </select>
         <button className="btn secondary" onClick={() => void reload()}><IconRefresh />Refresh</button>
         <span className="spacer" />
-        <span className="muted">{filtered.length} candidate(s)</span>
+        <span className="muted" aria-live="polite">
+          {filtered.length} {filtered.length === 1 ? "candidate" : "candidates"}{jd ? ` for ${jdLabel}` : ""}
+        </span>
       </div>
       <div className="table-scroll">
         <table className="data-table">
@@ -104,7 +142,7 @@ function CandidateList({ candidates, jds, reload }: { candidates: CandidateRow[]
           </thead>
           <tbody>
             {candidates === null && <EmptyRow colSpan={8}>Loading…</EmptyRow>}
-            {candidates !== null && pageRows.length === 0 && <EmptyRow colSpan={8}>{search ? "No candidates match your search." : "No candidates yet — import some from the Bulk upload tab."}</EmptyRow>}
+            {candidates !== null && pageRows.length === 0 && <EmptyRow colSpan={8}>{search || jd ? "No candidates match these filters." : "No candidates yet — import some from the Bulk upload tab."}</EmptyRow>}
             {pageRows.map((c) => {
               const busy = c.interviewStatus === "ACTIVE" || c.interviewStatus === "PENDING";
               return (
@@ -139,9 +177,9 @@ function CandidateList({ candidates, jds, reload }: { candidates: CandidateRow[]
       </div>
       {pages > 1 && (
         <div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>
-          <button className="btn secondary small" disabled={page === 0} onClick={() => setPage(page - 1)}>← Previous</button>
+          <button className="btn secondary small" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</button>
           <span className="muted">Page {page + 1} of {pages}</span>
-          <button className="btn secondary small" disabled={page >= pages - 1} onClick={() => setPage(page + 1)}>Next →</button>
+          <button className="btn secondary small" disabled={page >= pages - 1} onClick={() => setPage(page + 1)}>Next</button>
         </div>
       )}
       {reassessFor && <ReassessModal candidate={reassessFor} jds={jds} onClose={() => setReassessFor(null)} onDone={reload} />}

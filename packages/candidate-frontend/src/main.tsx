@@ -4,6 +4,8 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ErrorBoundary, RequireActiveInterview, RequireFinishedInterview, RequireProfile, Shell } from "./components/Shell";
 import { CandidateProvider } from "./lib/context";
 import "@fontsource-variable/plus-jakarta-sans";
+import "@fontsource-variable/newsreader";
+import "@fontsource-variable/jetbrains-mono";
 import "./styles/index.css";
 import "./styles/cand-common.css";
 

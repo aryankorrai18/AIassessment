@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { IconLock } from "../components/Icons";
+import { IconCamera, IconClock, IconLock } from "../components/Icons";
 import { Navigate, useNavigate } from "react-router-dom";
 import { api, errorMessage } from "../lib/api";
 import { useCandidate } from "../lib/context";
@@ -36,25 +36,43 @@ export default function Login() {
   };
 
   return (
-    <div className="login-wrap">
-      <form className="card login-card" onSubmit={submit} noValidate>
-        <div className="lock-badge" aria-hidden="true">
-          <IconLock size={22} />
-        </div>
+    <div className="login">
+      <section>
+        <h1 className="page-title">Your technical assessment</h1>
+        <p className="page-lede">
+          A timed interview in your browser, built from the job you applied for. Answer in your own words — typed, spoken or in code.
+        </p>
+        <ul className="expect">
+          <li>
+            <span className="expect-icon" aria-hidden="true"><IconClock size={20} /></span>
+            <div><strong>60 to 90 minutes</strong><span>Two or three timed sections, depending on the role. Set aside the full time.</span></div>
+          </li>
+          <li>
+            <span className="expect-icon" aria-hidden="true"><IconCamera size={20} /></span>
+            <div><strong>Camera and microphone on</strong><span>Checks run in your browser. No video is recorded; only flagged moments are kept.</span></div>
+          </li>
+          <li>
+            <span className="expect-icon" aria-hidden="true"><IconLock size={20} /></span>
+            <div><strong>One attempt</strong><span>Each answer is final once you submit it, so take your time on each question.</span></div>
+          </li>
+        </ul>
+      </section>
+
+      <form className="panel login-form" onSubmit={submit} noValidate>
         <div>
-          <h1 style={{ fontSize: 22 }}>GapVise AI Assessment</h1>
-          <p className="muted" style={{ margin: "6px 0 0" }}>Enter your email address and the access key from your invitation email.</p>
+          <h2>Sign in</h2>
+          <p className="muted" style={{ marginTop: 6 }}>Enter your email address and the access key from your invitation email.</p>
         </div>
         <div className="field">
           <label htmlFor="email">Email</label>
           <input id="email" type="email" autoFocus autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <div className="field">
-          <label htmlFor="key">Access Key</label>
+          <label htmlFor="key">Access key</label>
           <input id="key" type="password" autoComplete="off" placeholder="Your 12-character key" value={accessKey} onChange={(e) => setAccessKey(e.target.value)} />
         </div>
-        {error && <p className="error-text" role="alert" style={{ margin: 0 }}>{error}</p>}
-        <button className="btn full" type="submit" disabled={busy || !email.trim() || !accessKey.trim()}>{busy ? "Checking…" : "Continue →"}</button>
+        {error && <p className="error-text" role="alert">{error}</p>}
+        <button className="btn large full" type="submit" disabled={busy || !email.trim() || !accessKey.trim()}>{busy ? "Checking…" : "Continue"}</button>
       </form>
     </div>
   );

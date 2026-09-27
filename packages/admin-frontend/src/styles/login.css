@@ -1,43 +1,46 @@
+/* Sign-in: the ink panel is fixed in both themes — it is the brand, not the theme. */
 .login-split {
+  --ink: #0b1020;
+  --ink-text: #e9edf7;
+  --ink-muted: #b6c2d4;
+  --ink-line: #242e4d;
+  --ink-accent: #a5bfff;
   display: grid;
   grid-template-columns: 1.1fr 1fr;
   min-height: 100%;
 }
 .login-hero {
-  position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(600px 400px at 85% 110%, rgb(251 146 60 / 0.28), transparent 60%),
-    radial-gradient(700px 500px at 0% 0%, rgb(59 130 246 / 0.45), transparent 60%),
-    linear-gradient(160deg, #0b1b4d, #1d4ed8 58%, #2563eb);
-  color: #fff;
-  padding: 64px 56px;
+  background: var(--ink);
+  color: var(--ink-text);
+  padding: 64px 64px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 28px;
+  gap: 36px;
 }
 .login-brand {
-  font-size: 22px;
+  font-size: 20px;
 }
 .login-hero .login-brand b {
-  color: #bfdbfe;
+  color: var(--ink-accent);
 }
 .login-hero h1 {
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  max-width: 540px;
-  line-height: 1.2;
+  font-family: var(--font-serif);
+  font-size: 48px;
+  font-weight: 450;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  max-width: 560px;
 }
 .login-features {
   list-style: none;
-  padding: 0;
+  padding: 24px 0 0;
   margin: 0;
   display: grid;
-  gap: 16px;
+  gap: 18px;
   max-width: 540px;
-  color: rgb(255 255 255 / 0.86);
+  color: var(--ink-muted);
+  border-top: 1px solid var(--ink-line);
 }
 .login-features li {
   display: flex;
@@ -48,15 +51,16 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  background: rgb(255 255 255 / 0.14);
-  border: 1px solid rgb(255 255 255 / 0.22);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: var(--ink-accent);
+  border: 1px solid var(--ink-line);
   margin-top: 1px;
 }
 .login-features strong {
-  color: #fff;
+  color: var(--ink-text);
+  font-weight: 600;
 }
 .login-panel {
   display: grid;
@@ -66,14 +70,13 @@
 .login-card {
   width: min(400px, 100%);
   display: grid;
-  gap: 16px;
-  padding: 32px;
+  gap: 18px;
+  padding: 36px;
   margin: 0;
-  box-shadow: var(--shadow);
 }
 .login-card h2 {
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 700;
   margin: 0;
 }
 @media (max-width: 900px) {
@@ -85,7 +88,7 @@
     gap: 20px;
   }
   .login-hero h1 {
-    font-size: 24px;
+    font-size: 30px;
   }
   .login-features {
     display: none;

@@ -1926,10 +1926,15 @@ provider → shell, with children `login`, `instructions` (`RequireProfile`),
 `session` (`RequireActiveInterview`), `end` (`RequireFinishedInterview`). All
 four pages lazy-loaded (so MediaPipe and the editor only load when needed).
 
-Header: brand block ("GapVise AI" / "AI Skills Assessment"), then
-`<strong>{name}</strong> · {email}` when a profile exists, plus a theme
-toggle persisted to `localStorage["cand-theme"]`. **Default theme is dark**
-(light only if the OS prefers light).
+Visual design follows `design-system/gapvise-ai/pages/candidate.md` (the
+candidate "exam paper" layer: questions and page titles in a serif, the
+interface in the brand sans, monospace only in the code editor).
+
+Header (every page except the interview screen): the brand mark and "GapVise
+AI", then the candidate's name over their email when a profile exists, plus an
+icon theme toggle persisted to `localStorage["cand-theme"]`. **Default theme is
+dark** (light only if the OS prefers light). The interview screen replaces the
+header with its own session bar (§12.3).
 
 Context exposes `{ loading, profile, setProfile, consentGiven, interview,
 startedAt, sectionTimeLimitMs, timeExpired, startInterview, submitAnswer,
@@ -1955,59 +1960,82 @@ would be rejected as token reuse and force a spurious mid-interview logout.
 
 ### 12.1 Login
 
-A centered card: lock badge, `GapVise AI Assessment`, "Enter your email address
-and the access key from your invitation email." Two fields: Email (`type="email"`,
-placeholder `you@example.com`, autofocus) and Access Key (monospace with
-`letter-spacing: 1px`, placeholder `Your 12-character key`). Submit reads `Continue →` /
-`Checking…`. On success → `/interview/instructions`.
+Two columns (one below 900px). Left: the title "Your technical assessment", a
+one-line description, and three facts about what to expect — **60 to 90
+minutes** in two or three timed sections; **camera and microphone on**, with no
+video recorded; **one attempt**, each answer final once submitted. Right: a
+"Sign in" panel — "Enter your email address and the access key from your
+invitation email." — with two fields: Email (`type="email"`, placeholder
+`you@example.com`, autofocus) and Access key (monospace with
+`letter-spacing: 1px`, placeholder `Your 12-character key`). Submit reads
+`Continue` / `Checking…`. On success → `/interview/instructions`.
 
 ### 12.2 Instructions
 
-Heading "Assessment Guidelines" / "Read carefully before proceeding", then a
-numbered guideline grid:
+Heading "Before you begin, {first name}" / "This takes about two minutes to
+read. Once you begin, the clock for the first section starts." Two columns (one
+below 900px).
 
-| # | Content |
+**Left — how it works.** The sections in order as a row of cards: Definitions
+("Explain concepts. Type or speak."), Scenarios ("Work through real situations.
+Type or speak."), and Coding ("Write short solutions. Typed only.") **only if
+`profile.hasCoding`**. Then the rules, in two groups, each rule with an icon:
+
+| Group | Rule |
 |---|---|
-| 01 | Each question may be attempted **only once**; submitted responses are final. |
-| 02 | Copy-paste is strictly prohibited throughout. |
-| 03 | Ensure a stable internet connection. |
-| 04 | *Dynamic:* "Your interview has *N sections*: Definitions → Scenarios[ → Coding]. Definitions and Scenarios accept voice or typed answers; Coding is typed." The Coding clause appears **only if `profile.hasCoding`**. |
-| 05 | Close all applications including Outlook and Teams; notifications/pop-ups count as a violation. |
-| 06 | Runs in fullscreen, requested the moment Begin is clicked; exiting fullscreen is logged as a violation. |
-| 07 | Each section has a *Submit section* button; remaining questions in that section are skipped and cannot be answered later. |
+| Your answers | Each question may be attempted **only once**; submitted answers are final. |
+| Your answers | Copy-paste is **not allowed** anywhere in the assessment. |
+| Your answers | Each section has a *Submit section* button; questions left in that section are skipped and can't be answered later. |
+| Your setup | Use a stable internet connection. |
+| Your setup | Close other apps, including Outlook and Teams; notifications or pop-ups count as a violation. |
+| Your setup | Runs in **fullscreen**, starting when Begin is clicked; leaving fullscreen is recorded as a violation. |
 
-Two permission rows (Camera, Microphone) each showing `Not requested` /
-`Granted` / `Denied`. While not both granted, an **Allow camera & microphone**
-button calls `getUserMedia({ video: true, audio: true })`, sets each state from
-the resulting track counts, and **immediately stops the probe stream** (the
-interview screen re-acquires its own).
-
-A consent box describing the monitoring, then a consent checkbox. **Begin
-Assessment →** is disabled unless **both permissions are granted AND consent is
-checked**. On click, in order: `requestFullscreen()` (**must be inside this real
-user gesture**; non-blocking on failure) → `POST /session/start` → navigate to
-the session.
+**Right — "Get ready", a numbered checklist** (a step shows a check when done):
+1. *Turn on your camera and microphone.* A camera preview area, two status tags
+   (Camera, Microphone: `Not requested` / `Granted` / `Denied`), and — while not
+   both granted — an **Allow camera & microphone** button. It calls
+   `getUserMedia({ video: true, audio: true })` and sets each state from the
+   track counts. The **audio tracks are stopped immediately**; the video track
+   stays on as a mirrored framing preview and is **stopped on Begin and when the
+   page unmounts** (the interview screen acquires its own stream).
+2. *Agree to monitoring.* The monitoring description, then the consent checkbox.
+3. *Start the assessment.* **Begin assessment** is disabled unless **both
+   permissions are granted AND consent is checked**; a hint under it says which
+   is missing. On click, in order: stop the preview → `requestFullscreen()`
+   (**must be inside this real user gesture**; non-blocking on failure) →
+   `POST /session/start` → navigate to the session.
 
 ### 12.3 Interview (the core screen)
 
-**1. Section timer bar** — gains `.low` under 5 minutes, carries a
-`data-section` attribute. Shows the section label and `M:SS remaining`, computed
-as `sectionStartedAt + sectionTimeLimitMs - now` on a 1s tick, resetting on every
+Layout: a sticky **session bar** across the top, then a left **rail** (264px)
+beside the **question column** (max 780px). Below 960px the rail folds *under*
+the question.
+
+**1. Session bar and clock** — the brand mark, the current section's name over
+`Question {index} of {sectionTotal}`, a proctoring status (pulsing dot +
+"Proctoring on", plus a red `N flagged` when the strike count is above zero), the
+**clock** (`M:SS` over "left in {Section}", `role="timer"`, carrying a
+`data-section` attribute), and the theme toggle. Under the bar, a 3px **time
+line** whose length is the share of the section's time left. Both turn the
+brand orange (`.low`) under 5 minutes. Time left is computed as
+`sectionStartedAt + sectionTimeLimitMs - now` on a 1s tick, resetting on every
 section transition. **Purely cosmetic** — the real deadline is enforced
 server-side on every answer and heartbeat, so tampering with the local clock
 cannot extend anyone's time.
 
-**2. Stepper** — one card per section with status `done|active|upcoming`: a
-marker (`✓` when done, else the section's first letter), the label, a badge
-("Done" / "In progress" / "Upcoming"), a progress fill at `answered/total`, and
-`N / M questions`.
+**2. Rail — progress tracker** — one entry per section with status
+`done|active|upcoming`: the name (with a check when done), `answered / total`,
+and **one mark per question**: filled when answered, a ringed dot for the
+current question, dashed for questions skipped by submitting the section, and
+an outline for upcoming ones. The marks are decorative (`aria-hidden`); the
+count carries the status for screen readers.
 
-**3. Info row** — a **Submit section →** button (becoming **Submit section &
-finish** on the last section) and a proctoring chip: a pulsing dot + "Proctoring
-active", plus a red `· N flagged` when the strike count is above zero.
+**3. Rail — Submit section** — a secondary **Submit {Section}** button
+(**Submit section & finish** on the last section) with the hint "Skips the N
+question(s) left in this section." The rail also holds the self-view (§12.4).
 
-**4. Question card** — a section tag pill, `Question {index} of {sectionTotal}`,
-and the prompt.
+**4. Question** — `Question {index} of {sectionTotal}`, then the prompt as the
+page's `h1`, set large in the serif.
 
 **5. Answer panel**, two mutually exclusive inputs:
 - **Non-coding** — a textarea (`aria-label="Your answer"`, placeholder "Type your
@@ -2019,8 +2047,15 @@ and the prompt.
   a textarea with `spellCheck={false}` and **`onPaste` prevented**. Coding answers
   always submit with `inputMode: "typed"`.
 
-Controls row: the voice recorder (**non-coding sections only**) and a Send button
+The input and its controls form one **composer**. Its bar holds: the voice
+recorder (**non-coding sections only**; while recording, a red "Stop recording"
+button and "Listening…"), a live size count (`N words`, or `N lines` for code),
+a `Ctrl`/`⌘` + `Enter` hint (hidden on touch screens), and the Send button
 labelled "Submit answer" — or **"Submit & finish"** on the very last question.
+**Ctrl/Cmd + Enter submits** from anywhere in the composer (same guards as the
+button). On every question change the page scrolls to the top and focus moves
+into the answer box. The code editor turns font ligatures off, so `<>`, `!=` and
+`->` show exactly as typed.
 
 **Voice handling.** Web Speech API (`SpeechRecognition`/`webkitSpeechRecognition`,
 `continuous`, `interimResults`, `lang: "en-US"`, auto-restarting on `onend`). Each
@@ -2058,13 +2093,16 @@ Buttons "Submit & finish" / "Submit section" and "Keep answering".
 
 ### 12.4 Proctoring UI — three deliberate tiers
 
-**Tier 1 — self-view inlay.** A mirrored (`scaleX(-1)`) 160×120 video, fixed
-bottom-right, `zIndex 40`, `aria-hidden`. It is an ordinary "see yourself" view —
+**Tier 1 — self-view.** A mirrored (`scaleX(-1)`) 4:3 video, `aria-hidden`,
+docked at the top of the rail with the candidate's name and "Only you should be
+in view. Nothing is recorded." Below 960px it floats bottom-right as a small
+inlay (144px wide, 96px on phones, `zIndex 40`). It is an ordinary "see yourself" view —
 **never** a diagnostic overlay: no mesh, no bounding boxes, no score, ever. If
 camera acquisition failed, show "Proctoring couldn't start: `<error>`" instead.
 
-**Tier 2 — non-blocking banners.** A centered top column (`zIndex 45`) of
-stackable `role="alert"` pills, since more than one can legitimately be true at
+**Tier 2 — non-blocking banners.** A centered column just under the session bar
+(`zIndex 45`; the page leaves room above the question so a banner never covers
+the prompt) of stackable amber `role="alert"` pills, each with a warning icon, since more than one can legitimately be true at
 once:
 - Live face state — tracks the **real instantaneous state**, not the debounced
   violation: "No face detected — please stay visible in frame" / "Multiple faces
@@ -2083,12 +2121,12 @@ fullscreen-exit raise the overlay. **Gaze, multiple-faces, and no-face stay
 silent by design** — a full block every time a face drops out would be more
 disruptive than a quiet banner.
 - *Tab-switch:* nothing can render while the tab is hidden, so it is flagged
-  pending and fires on return. "Browser Navigation Detected" / "Navigating away
+  pending and fires on return. "You left the assessment tab" / "Navigating away
   from this assessment window is recorded as a violation. Please stay on this tab
-  for the rest of the assessment." Button: "Return to Assessment".
-- *Fullscreen-exit:* fires immediately. "Fullscreen Mode Required" / "This
+  for the rest of the assessment." Button: "Return to assessment".
+- *Fullscreen-exit:* fires immediately. "Fullscreen is required" / "This
   assessment must be conducted in fullscreen mode to maintain assessment
-  integrity." Button "Re-enter Fullscreen →" attempts `requestFullscreen()` and
+  integrity." Button "Re-enter fullscreen" attempts `requestFullscreen()` and
   **retries once after 350ms** (some browsers reject a request made too soon
   after an Esc-triggered exit). It auto-dismisses **only on real success**; on
   denial it stays up with "Your browser didn't grant fullscreen. Try again, or
@@ -2100,7 +2138,7 @@ disruptive than a quiet banner.
 
 **Duplicate-tab hard block** — scoped by the candidate's email (the frontend never has the
 interviewId). The duplicate tab renders a full-screen non-dismissible `zIndex
-10000` card: "Already Open Elsewhere" / "This interview is already open in
+10000` card: "Already open in another tab" / "This interview is already open in
 another tab or window. Please continue there — working in two tabs at once can
 cause answers to be lost. You can close this tab." — and stops every detection
 loop and the camera stream in that tab. **No violation is logged** — this is a
@@ -2108,14 +2146,15 @@ UX guard, not an integrity signal.
 
 ### 12.5 End screen
 
-A green circular check badge, then:
-- **Heading:** `"Time's up"` when `timeExpired` is latched, else `"Assessment Complete"`.
+A circular badge — a green check, or an orange clock when time expired — then:
+- **Heading:** `"Time's up"` when `timeExpired` is latched, else `"Assessment complete"`.
 - **Subtitle:** time-expired → "Your interview's time limit was reached, so it
   was submitted automatically with the answers you'd given so far."; normal →
   "Thanks for your time. Your responses have been submitted and will be reviewed
   by the hiring team."
-- **Stats hint:** `N answer(s) recorded across M section(s).` — **no score,
-  category, or feedback is ever shown to the candidate.**
+- **Stats:** two figures, `N answers recorded` and `M sections` — **no score,
+  category, or feedback is ever shown to the candidate** — then "The hiring team
+  will be in touch about next steps. You don't need to do anything else."
 - **Done** button — posts `/auth/logout` (errors swallowed), clears state,
   navigates to login.
 
@@ -2233,7 +2272,13 @@ built product:
   optional Reference ID keeps the customer's own ID. Access keys are
   normalized to uppercase at login (§7.8).
 - **Login moves the interview to `ACTIVE`** (§7.8).
-- Candidate-app header reads "AI Skills Assessment" (§12.0).
+- **Candidate app redesign** (§12): an "exam paper" layer
+  (`design-system/gapvise-ai/pages/candidate.md`); two-column login and
+  instructions with a "Get ready" checklist and camera preview; an interview
+  screen with a session bar, time line, per-question progress tracker, docked
+  self-view and a composer with word count and Ctrl/Cmd + Enter to submit;
+  plain-language overlay titles. Proctoring, timing, draft and submission rules
+  are unchanged.
 - **Visual refresh** (§11.0): design system in `design-system/gapvise-ai/`, new
   brand mark (`brand/`), SVG icons instead of symbol glyphs, readable status
   labels, mobile navigation drawer, Candidates row actions menu (§11.3).

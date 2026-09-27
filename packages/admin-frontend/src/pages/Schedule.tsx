@@ -59,7 +59,7 @@ export default function Schedule() {
               <div key={k.email} className="mono">
                 {k.name} ({k.email}): <strong>{k.key}</strong>{"  "}
                 {k.emailSent ? <span className="pill ok"><IconCheck size={12} />emailed</span> : <span className="pill err"><IconX size={12} />email failed</span>}
-                {k.emailPreviewUrl && <> <a href={k.emailPreviewUrl} target="_blank" rel="noreferrer">Preview email →</a></>}
+                {k.emailPreviewUrl && <> <a href={k.emailPreviewUrl} target="_blank" rel="noreferrer">Preview email</a></>}
               </div>
             ))}
           </div>

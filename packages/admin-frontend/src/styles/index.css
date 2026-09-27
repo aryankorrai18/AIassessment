@@ -1,86 +1,87 @@
 /*
- * GapVise design tokens — see design-system/gapvise-ai/MASTER.md.
- * Components use these semantic tokens only; never raw hex in component CSS.
+ * GapVise admin tokens — the "examiner's desk" layer of the design system
+ * (design-system/gapvise-ai/MASTER.md). Same ink-and-paper palette and serif as
+ * the candidate app, so the two read as one product. Components use these
+ * semantic tokens only; never raw hex in component CSS. Text pairs are >= 4.5:1.
  */
 :root,
 :root[data-theme="light"] {
-  /* Surfaces */
-  --bg: #f8fafc;
+  --bg: #f4f6fa;
   --surface: #ffffff;
-  --surface-2: #f1f5f9;
-  --surface-hover: #f8fafc;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  /* Text (all ≥4.5:1 on --surface and --surface-2) */
-  --text: #0f172a;
-  --text-muted: #475569;
-  --text-faint: #5e6b7e;
-  /* Brand */
+  --surface-2: #eef1f7;
+  --surface-hover: #f7f9fc;
+  --border: #e1e6ef;
+  --border-strong: #c7cfdd;
+  --text: #10162e;
+  --text-muted: #4a5470;
+  --text-faint: #5e6883;
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
-  --accent-soft: #eff4ff;
+  --accent-soft: #e9effe;
   --accent-text: #1d4ed8;
   --on-accent: #ffffff;
-  --brand-orange: #ea580c;
-  /* Status */
-  --ok: #15803d;
-  --ok-soft: #dcfce7;
+  --brand-orange: #c2410c;
+  --ok: #166534;
+  --ok-soft: #e3f6ea;
   --warn: #b45309;
   --warn-soft: #fef3c7;
   --err: #b91c1c;
-  --err-soft: #fee2e2;
+  --err-soft: #fdecec;
   --danger: #dc2626;
   --danger-hover: #b91c1c;
-  /* Elevation & focus */
-  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.05);
-  --shadow: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
-  --shadow-lg: 0 12px 32px rgb(15 23 42 / 0.16);
+  --shadow-sm: 0 1px 2px rgb(16 22 46 / 0.05);
+  --shadow: 0 1px 3px rgb(16 22 46 / 0.08);
+  --shadow-lg: 0 20px 48px rgb(16 22 46 / 0.18);
+  --scrim: rgb(16 22 46 / 0.5);
   --focus: 0 0 0 3px rgb(37 99 235 / 0.35);
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  --bg: #020617;
-  --surface: #0f172a;
-  --surface-2: #1e293b;
-  --surface-hover: #162033;
-  --border: #1e293b;
-  --border-strong: #334155;
-  --text: #f1f5f9;
-  --text-muted: #94a3b8;
-  --text-faint: #7c8ba1;
+  --bg: #0b1020;
+  --surface: #111830;
+  --surface-2: #18203b;
+  --surface-hover: #161e38;
+  --border: #242e4d;
+  --border-strong: #34406a;
+  --text: #e9edf7;
+  --text-muted: #a3adc7;
+  --text-faint: #8590ae;
   --accent: #2563eb;
-  --accent-hover: #3b82f6;
-  --accent-soft: #172554;
-  --accent-text: #93c5fd;
+  --accent-hover: #3b74f0;
+  --accent-soft: #16224a;
+  --accent-text: #a5bfff;
   --on-accent: #ffffff;
   --brand-orange: #fb923c;
-  --ok: #4ade80;
-  --ok-soft: #052e16;
+  --ok: #5ed39a;
+  --ok-soft: #0f2e22;
   --warn: #fbbf24;
-  --warn-soft: #3b2a05;
-  --err: #fca5a5;
-  --err-soft: #450a0a;
+  --warn-soft: #33260a;
+  --err: #ff9c9c;
+  --err-soft: #3d1518;
   --danger: #dc2626;
   --danger-hover: #ef4444;
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow: 0 1px 3px rgb(0 0 0 / 0.5);
-  --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.6);
-  --focus: 0 0 0 3px rgb(147 197 253 / 0.5);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow: 0 1px 3px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 24px 60px rgb(2 6 23 / 0.6);
+  --scrim: rgb(5 8 18 / 0.72);
+  --focus: 0 0 0 3px rgb(165 191 255 / 0.45);
   color-scheme: dark;
 }
 
 :root {
-  /* Type — Plus Jakarta Sans, self-hosted (no font CDN) */
+  /* Type — all self-hosted. Serif for page titles, report content and figures;
+     sans for the interface; mono only for access keys and code. */
   --font-sans: "Plus Jakarta Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
+  --font-serif: "Newsreader Variable", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Consolas, monospace;
   --text-xs: 12px;
   --text-sm: 13px;
   --text-base: 14px;
   --text-md: 15px;
   --text-lg: 18px;
   --text-xl: 22px;
-  --text-2xl: 28px;
+  --text-2xl: 34px;
   /* Spacing (4px grid) */
   --space-1: 4px;
   --space-2: 8px;
@@ -89,10 +90,12 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
-  /* Shape & motion */
+  --space-10: 40px;
+  /* Shape & motion — radius follows hierarchy: controls < panels < dialogs */
   --radius-sm: 6px;
   --radius: 8px;
   --radius-lg: 12px;
+  --radius-xl: 18px;
   --radius-full: 999px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
   --dur-fast: 120ms;

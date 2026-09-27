@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { IconCheck } from "../components/Icons";
+import { IconCheck, IconClock } from "../components/Icons";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { clearAllDrafts, useCandidate } from "../lib/context";
@@ -28,16 +28,22 @@ export default function End() {
   };
 
   return (
-    <div className="card end-card">
-      <div className="check-badge" aria-hidden="true"><IconCheck size={34} /></div>
-      <h1 style={{ fontSize: 26 }}>{timeExpired ? "Time's up" : "Assessment Complete"}</h1>
-      <p className="muted" style={{ margin: 0 }}>
+    <div className="end">
+      <div className={`end-mark${timeExpired ? " expired" : ""}`} aria-hidden="true">
+        {timeExpired ? <IconClock size={30} /> : <IconCheck size={30} />}
+      </div>
+      <h1 className="page-title">{timeExpired ? "Time's up" : "Assessment complete"}</h1>
+      <p className="page-lede" style={{ marginTop: 0 }}>
         {timeExpired
           ? "Your interview's time limit was reached, so it was submitted automatically with the answers you'd given so far."
           : "Thanks for your time. Your responses have been submitted and will be reviewed by the hiring team."}
       </p>
-      <p className="hint" style={{ margin: 0 }}>{answers} answer(s) recorded across {sections} section(s).</p>
-      <button className="btn" onClick={() => void done()}>Done</button>
+      <div className="end-stats">
+        <div><b>{answers}</b><span>{answers === 1 ? "answer" : "answers"} recorded</span></div>
+        <div><b>{sections}</b><span>{sections === 1 ? "section" : "sections"}</span></div>
+      </div>
+      <p className="hint">The hiring team will be in touch about next steps. You don't need to do anything else.</p>
+      <button className="btn large" onClick={() => void done()}>Done</button>
     </div>
   );
 }
